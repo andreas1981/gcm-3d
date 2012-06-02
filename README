@@ -21,5 +21,6 @@ VTK dumps    : ./gcm3d --task ~/gcm-3d-materials/data/tasks/basic-contact-task.x
                ./gcm3d --task ~/gcm-3d-materials/data/tasks/basic-contact-task.xml --data-dir ~/gcm-3d-materials/data/models/ --dump-vtk zone_%z_num_%n.vtu
 Line dumps   : ./gcm3d --task ~/gcm-3d-materials/data/tasks/basic-contact-task.xml --data-dir ~/gcm-3d-materials/data/models/ --dump-line @
              : ./gcm3d --task ~/gcm-3d-materials/data/tasks/basic-contact-task.xml --data-dir ~/gcm-3d-materials/data/models/ --dump-line line_%n.txt --threshold 0.1 --from 0,0,0 --to 1,1,1
+Both and MPI : mpirun -np 3 ./gcm3d --task ~/github/gcm-3d-materials/data/tasks/task-3layers-test.xml --zones ~/github/gcm-3d-materials/data/tasks/task-3layers-3cpu-zones.xml --data-dir ~/github/gcm-3d-materials/data/models/ --log-file 3layers-test/proc-%p.log --dump-vtk 3layers-test/zone_%z_num_%n.vtu --dump-line 3layers-test/line_%n.txt --threshold 0.1 --from 100,100,0 --to 100,100,27
 
 Please see ./gcm3d --help for details.
