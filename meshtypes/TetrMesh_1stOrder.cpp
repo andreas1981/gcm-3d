@@ -1674,7 +1674,7 @@ bool TetrMesh_1stOrder::interpolate_triangle(float *p1, float *p2, float *p3, fl
 	// [n3, 0, -n1]
 	// [n1*n2, -(n1^2+n3^2), n2*n3]
 
-	if (n3 != 0.0 && n1 != 0.0)
+	if (n3 != 0.0 || n1 != 0.0)
 	{
 		gsl_matrix_set(T, 0, 0, n1);
 		gsl_matrix_set(T, 0, 1, n2);
