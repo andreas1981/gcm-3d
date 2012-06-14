@@ -83,12 +83,12 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::drop_deviator(ElasticN
 	}
 };
 
-int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_node(ElasticNode* cur_node, ElasticMatrix3D* matrixes[], float time_step, int stage, TetrMesh* mesh, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num, float value_limiters[])
+int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_node(ElasticNode* cur_node, ElasticMatrix3D* matrixes[], float time_step, int stage, TetrMesh* mesh, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num)
 {
-	return prepare_node(cur_node, matrixes, time_step, stage, mesh, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num, value_limiters, false);
+	return prepare_node(cur_node, matrixes, time_step, stage, mesh, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num, false);
 };
 
-int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_node(ElasticNode* cur_node, ElasticMatrix3D* matrixes[], float time_step, int stage, TetrMesh* mesh, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num, float value_limiters[], bool debug)
+int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_node(ElasticNode* cur_node, ElasticMatrix3D* matrixes[], float time_step, int stage, TetrMesh* mesh, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num, bool debug)
 {
 
 	if (cur_node->border_type == BORDER)
@@ -106,16 +106,16 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_node(ElasticNod
 	int outer_count;
 
 	do {
-		outer_count = find_nodes_on_previous_time_layer(cur_node, stage, mesh, alpha, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num, value_limiters, debug);
+		outer_count = find_nodes_on_previous_time_layer(cur_node, stage, mesh, alpha, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num, debug);
 		alpha += 0.1;
 	} while( (outer_count != 0) && (outer_count != 3) && (alpha < 1.01) );
 
 	return outer_count;
 };
 
-void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::log_node_diagnostics(ElasticNode* cur_node, int stage, float outer_normal[], TetrMesh* mesh, int basis_num, ElasticMatrix3D* matrixes[], float time_step, ElasticNode previous_nodes[], int ppoint_num[], bool inner[], float dksi[], float value_limiters[])
+void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::log_node_diagnostics(ElasticNode* cur_node, int stage, float outer_normal[], TetrMesh* mesh, int basis_num, ElasticMatrix3D* matrixes[], float time_step, ElasticNode previous_nodes[], int ppoint_num[], bool inner[], float dksi[])
 {
-	int outer_count = prepare_node(cur_node, matrixes, time_step, stage, mesh, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num, value_limiters, true);
+	int outer_count = prepare_node(cur_node, matrixes, time_step, stage, mesh, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num, true);
 
 	*logger < "NODE DETAILS:";
 	*logger << "STAGE: " < stage;
@@ -126,9 +126,6 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::log_node_diagnostics(E
 	*logger < "VALUES: ";
 	for(int j = 0; j < 9; j++)
 		*logger << "Value[" << j << "] = " < cur_node->values[j];
-	*logger < "LIMITERS: ";
-	for(int j = 0; j < 9; j++)
-		*logger << "Limiters[" << j << "] = " < value_limiters[j];
 	if( cur_node->border_type == BORDER ) {
 		*logger < "BORDER";
 		if( ( cur_node->contact_data != NULL ) && ( cur_node->contact_data->axis_plus[stage] == -1 ) && ( cur_node->contact_data->axis_minus[stage] == -1 ) ) {
@@ -195,14 +192,9 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::log_node_diagnostics(E
 
 int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(ElasticNode* cur_node, ElasticNode* new_node, float time_step, int stage, TetrMesh* mesh)
 {
-	// Limiters for values[] of new node. Used to trigger alarm on potential instabilities.
-	float value_limiters[9];
 	for(int i = 0; i < 9; i++)
-	{
 		if( isnan(cur_node->values[i]) || isinf(cur_node->values[i]) )
 			throw GCMException(GCMException::METHOD_EXCEPTION, "NAN or INF detected. Instability?");
-		value_limiters[i] = fabs(cur_node->values[i]);
-	}
 
 	if(stage == 3) {
 		drop_deviator(cur_node, new_node);
@@ -235,12 +227,12 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elast
 	float omega[9];
 
 	// Number of outer characteristics
-	int outer_count = prepare_node(cur_node, elastic_matrix3d, time_step, stage, mesh, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num, value_limiters);
+	int outer_count = prepare_node(cur_node, elastic_matrix3d, time_step, stage, mesh, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num);
 
 	// TODO - merge this condition with the next ones
 	if((outer_count != 0) && (outer_count != 3)) {
 		*logger << "There are " << outer_count < " 'outer' characteristics.";
-		log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi, value_limiters);
+		log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi);
 		throw GCMException(GCMException::METHOD_EXCEPTION, "Illegal number of outer characteristics");
 	}
 
@@ -255,7 +247,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elast
 		// if( cur_node->border_type == BORDER )	// node is marked as border
 		// {
 		// 	if(logger != NULL)
-		// 	log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi, value_limiters);
+		// 	log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi);
 		// 	return -1;
 		// }
 
@@ -291,19 +283,19 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elast
 		// Node is not border at all
 		if ( cur_node->border_type != BORDER )
 		{
-			log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi, value_limiters);
+			log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi);
 			throw GCMException(GCMException::METHOD_EXCEPTION, "Border node is not marked as border");
 		}
 		// Node should be border but it has no contact_data struct
 		else if( cur_node->contact_data == NULL )
 		{
-			log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi, value_limiters);
+			log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi);
 			throw GCMException(GCMException::METHOD_EXCEPTION, "Border node has no contact data struct");
 		}
 		// Both directions are marked as contact
 		else if ( ( cur_node->contact_data->axis_plus[stage] != -1 ) && ( cur_node->contact_data->axis_minus[stage] != -1 ) )
 		{
-			log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi, value_limiters);
+			log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi);
 			throw GCMException(GCMException::METHOD_EXCEPTION, "Both direction of contact are marked as contact");
 		}
 
@@ -475,7 +467,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elast
 			float virt_omega[9];
 
 			// Number of outer characteristics
-			int virt_outer_count = prepare_node(virt_node, virt_elastic_matrix3d, time_step, stage, virt_node->mesh, virt_dksi, virt_inner, virt_previous_nodes, virt_outer_normal, virt_ppoint_num, basis_num, value_limiters);
+			int virt_outer_count = prepare_node(virt_node, virt_elastic_matrix3d, time_step, stage, virt_node->mesh, virt_dksi, virt_inner, virt_previous_nodes, virt_outer_normal, virt_ppoint_num, basis_num);
 
 			// TODO - merge this condition with the next ones
 			if( virt_outer_count != 3 ) {
@@ -484,7 +476,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elast
 								<< "x: " << cur_node->coords[0] 
 								<< " y: " << cur_node->coords[1] 
 								<< " z: " < cur_node->coords[2];
-				log_node_diagnostics(virt_node, stage, virt_outer_normal, virt_node->mesh, basis_num, virt_elastic_matrix3d, time_step, virt_previous_nodes, virt_ppoint_num, virt_inner, virt_dksi, value_limiters);
+				log_node_diagnostics(virt_node, stage, virt_outer_normal, virt_node->mesh, basis_num, virt_elastic_matrix3d, time_step, virt_previous_nodes, virt_ppoint_num, virt_inner, virt_dksi);
 				throw GCMException(GCMException::METHOD_EXCEPTION, "Illegal number of outer characteristics");
 			}
 
@@ -513,7 +505,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elast
 								<< "x: " << cur_node->coords[0] 
 								<< " y: " << cur_node->coords[1] 
 								<< " z: " < cur_node->coords[2];
-						log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi, value_limiters);
+						log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi);
 						*logger << "'Outer' direction: " << v_x_outer[0] << " " 
 							<< v_x_outer[1] << " " < v_x_outer[2];
 						*logger << "'Virt' direction: " << v_x_virt[0] << " "
@@ -537,7 +529,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elast
 								<< "x: " << cur_node->coords[0] 
 								<< " y: " << cur_node->coords[1] 
 								<< " z: " < cur_node->coords[2];
-						log_node_diagnostics(virt_node, stage, virt_outer_normal, virt_node->mesh, basis_num, virt_elastic_matrix3d, time_step, virt_previous_nodes, virt_ppoint_num, virt_inner, virt_dksi, value_limiters);
+						log_node_diagnostics(virt_node, stage, virt_outer_normal, virt_node->mesh, basis_num, virt_elastic_matrix3d, time_step, virt_previous_nodes, virt_ppoint_num, virt_inner, virt_dksi);
 						*logger << "'Outer' direction: " << v_x_outer[0] << " "
 							<< v_x_outer[1] << " "< v_x_outer[2];
 						*logger << "'Virt' direction: " << v_x_virt[0] << " "
@@ -677,29 +669,15 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elast
 		return -1;
 	}
 
-	// Check for instabilities
-/*	for(int i = 0; i < 9; i++) {
-		if( fabs(new_node->values[i]) > 10 * value_limiters[i]) { // TODO avoid magick number
-			*logger < "WARN: GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step - potential instability found.";
-			for(int j = 0; j < 9; j++) {
-				*logger << "NEW VALUE[" << j << "] = " < new_node->values[j];
-				*logger << "OLD VALUE[" << j << "] = " < cur_node->values[j];
-				*logger << "LIMITER[" << j << "] = " < value_limiters[j];
-			}
-//			log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi, value_limiters);
-			break;
-		}
-	}*/
-
 	return 0;
 };
 
-int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_time_layer(ElasticNode* cur_node, int stage, TetrMesh* mesh, float alpha, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num, float value_limiters[])
+int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_time_layer(ElasticNode* cur_node, int stage, TetrMesh* mesh, float alpha, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num)
 {
-	return find_nodes_on_previous_time_layer(cur_node, stage, mesh, alpha, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num, value_limiters, false);
+	return find_nodes_on_previous_time_layer(cur_node, stage, mesh, alpha, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num, false);
 };
 
-int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_time_layer(ElasticNode* cur_node, int stage, TetrMesh* mesh, float alpha, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num, float value_limiters[], bool debug)
+int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_time_layer(ElasticNode* cur_node, int stage, TetrMesh* mesh, float alpha, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num, bool debug)
 {
 
 	if( (alpha > 1.01) || (alpha < 0) )
@@ -816,11 +794,6 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_
 				// ... And interpolate values
 				mesh->interpolate(&previous_nodes[count], tmp_tetr);
 				inner[i] = true;
-				// ... And update value limiters
-				for(int j = 0; j < 4; j++)
-					for(int k = 0; k < 9; k++)
-						if(fabs((mesh->nodes).at(tmp_tetr->vert[j]).values[k]) > value_limiters[k] )
-							value_limiters[k] = fabs((mesh->nodes).at(tmp_tetr->vert[j]).values[k]);
 			} else {
 				// There is no value in interpolation in this case
 				//	as long as characteristic is out of region
