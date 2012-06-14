@@ -21,7 +21,7 @@ class GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis : public TetrNumerical
 public:
 	GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis();
 	~GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis();
-	int do_next_part_step(ElasticNode* cur_node, ElasticNode* new_node, float time_step, int stage, TetrMesh* mesh);
+	void do_next_part_step(ElasticNode* cur_node, ElasticNode* new_node, float time_step, int stage, TetrMesh* mesh);
 	int get_number_of_stages();
 	float get_max_lambda(ElasticNode* node, TetrMesh* mesh);
 protected:

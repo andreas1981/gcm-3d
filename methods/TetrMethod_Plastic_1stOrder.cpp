@@ -190,7 +190,7 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::log_node_diagnostics(E
 	}
 };
 
-int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(ElasticNode* cur_node, ElasticNode* new_node, float time_step, int stage, TetrMesh* mesh)
+void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(ElasticNode* cur_node, ElasticNode* new_node, float time_step, int stage, TetrMesh* mesh)
 {
 	for(int i = 0; i < 9; i++)
 		if( isnan(cur_node->values[i]) || isinf(cur_node->values[i]) )
@@ -198,7 +198,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elast
 
 	if(stage == 3) {
 		drop_deviator(cur_node, new_node);
-		return 0;
+		return;
 	}
 
 	// Variables used in calculations internally
@@ -248,7 +248,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elast
 		// {
 		// 	if(logger != NULL)
 		// 	log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi);
-		// 	return -1;
+		// 	throw GCMException(GCMException::METHOD_EXCEPTION, "outer_count == 0 for BORDER node");
 		// }
 
 		// Calculate omega value
@@ -347,7 +347,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elast
 					}
 					else 
 					{
-						return -1;
+						throw GCMException(GCMException::METHOD_EXCEPTION, "Bad stage number");
 					}
 				}
 			}*/
@@ -663,13 +663,6 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elast
 			free(virt_node->contact_data);
 		}
 	}
-	// If there are 'outer' omegas but not 3 ones - we should not be here - we checked it before
-	else
-	{
-		return -1;
-	}
-
-	return 0;
 };
 
 int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_time_layer(ElasticNode* cur_node, int stage, TetrMesh* mesh, float alpha, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num)

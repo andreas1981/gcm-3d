@@ -11,7 +11,7 @@ class TetrNumericalMethod : public NumericalMethod
 public:
 	TetrNumericalMethod();
 	~TetrNumericalMethod();
-	virtual int do_next_part_step(ElasticNode* cur_node, ElasticNode* new_node, float time_step, int stage, TetrMesh* mesh) = 0;
+	virtual void do_next_part_step(ElasticNode* cur_node, ElasticNode* new_node, float time_step, int stage, TetrMesh* mesh) = 0;
 	virtual float get_max_lambda(ElasticNode* node, TetrMesh* mesh) = 0;
 };
 

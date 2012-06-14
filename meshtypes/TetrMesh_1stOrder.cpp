@@ -1378,9 +1378,7 @@ int TetrMesh_1stOrder::do_next_part_step(float tau, int stage)
 	{
 		if(nodes[i].placement_type == LOCAL)
 		{
-			if (method->do_next_part_step(&nodes[i], &new_nodes[i], tau, stage, this) < 0)
-				throw GCMException( GCMException::MESH_EXCEPTION, "Do next part step failed");
-			// TODO Add details
+			method->do_next_part_step(&nodes[i], &new_nodes[i], tau, stage, this);
 		}
 	}
 	for(int i = 0; i < nodes.size(); i++)
