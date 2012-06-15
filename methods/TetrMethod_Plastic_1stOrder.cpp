@@ -37,20 +37,15 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::~GCM_Tetr_Plastic_Interpola
 	delete adhesion_contact_calc;
 };
 
-int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_part_step(ElasticNode* cur_node, ElasticMatrix3D* matrix, int stage, int basis_num)
+void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_part_step(ElasticNode* cur_node, ElasticMatrix3D* matrix, int stage, int basis_num)
 {
 
 	if(stage < 3) {
-		if( matrix->prepare_matrix( cur_node->la, cur_node->mu, cur_node->rho, 
-					random_axis_inv[basis_num].ksi[0][stage], random_axis_inv[basis_num].ksi[1][stage], 
-								random_axis_inv[basis_num].ksi[2][stage]) < 0) {
-			return -1;
-		}
+		matrix->prepare_matrix( cur_node->la, cur_node->mu, cur_node->rho, random_axis_inv[basis_num].ksi[0][stage], 
+				random_axis_inv[basis_num].ksi[1][stage], random_axis_inv[basis_num].ksi[2][stage] );
 	} else {
-		return -1;
+		throw GCMException( GCMException::METHOD_EXCEPTION, "Bad stage number");
 	}
-
-	return 0;
 };
 
 void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::drop_deviator(ElasticNode* cur_node, ElasticNode* new_node)
@@ -87,8 +82,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_node(ElasticNod
 		mesh->find_border_node_normal(cur_node->local_num, &outer_normal[0], &outer_normal[1], &outer_normal[2]);
 
 	//  Prepare matrixes  A, Lambda, Omega, Omega^(-1)
-	if (prepare_part_step(cur_node, matrixes[stage], stage, basis_num) < 0)
-		return -1;
+	prepare_part_step(cur_node, matrixes[stage], stage, basis_num);
 
 	for(int i = 0; i < 9; i++)
 		dksi[i] = - matrixes[stage]->L(i,i) * time_step;
@@ -278,14 +272,10 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 		}
 
 		// If both directions show no contact - use border algorithm, otherwise use contact algorithm
-		// Border algorithm
 		if( ( cur_node->contact_data->axis_plus[stage] == -1 ) && ( cur_node->contact_data->axis_minus[stage] == -1 ) )
 		{
-
 			free_border_calc->do_calc(new_node, random_axis + basis_num, elastic_matrix3d[stage], previous_values, inner, stage);
 
-		// Contact algorithm
-		// Idea taken from @sedire and it made working with virt node from mesh_set and with random axis
 		} else {
 
 			ElasticNode* virt_node;
@@ -329,6 +319,10 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 
 			// Number of outer characteristics
 			int virt_outer_count = prepare_node(virt_node, virt_elastic_matrix3d, time_step, stage, virt_node->mesh, virt_dksi, virt_inner, virt_previous_nodes, virt_outer_normal, virt_ppoint_num, basis_num);
+
+			float* virt_previous_values[9];
+			for(int i = 0; i < 9; i++)
+				virt_previous_values[i] = &virt_previous_nodes[virt_ppoint_num[i]].values[0];
 
 			// TODO - merge this condition with the next ones
 			if( virt_outer_count != 3 ) {
@@ -399,10 +393,6 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 					}
 				}
 			}
-
-			float* virt_previous_values[9];
-			for(int i = 0; i < 9; i++)
-				virt_previous_values[i] = &virt_previous_nodes[virt_ppoint_num[i]].values[0];
 
 			adhesion_contact_calc->do_calc(new_node, random_axis + basis_num, elastic_matrix3d[stage], previous_values, inner, virt_elastic_matrix3d[stage], virt_previous_values, virt_inner, stage, outer_normal);
 
