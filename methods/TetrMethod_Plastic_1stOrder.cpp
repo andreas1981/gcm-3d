@@ -270,7 +270,15 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 		// If both directions show no contact - use border algorithm, otherwise use contact algorithm
 		if( ( cur_node->contact_data->axis_plus[stage] == -1 ) && ( cur_node->contact_data->axis_minus[stage] == -1 ) )
 		{
-			free_border_calc->do_calc(new_node, random_axis + basis_num, elastic_matrix3d[stage], previous_values, inner, stage);
+			// We use basis axis here instead of outer_normal because:
+			//    - for 'normal' points first axis coincides with normal and that's it
+			//    - for edges and verts it is the only way to avoid singular matrix
+			// Singular matrix appears because:
+			//    - current axis is used for A calculation, thus for 6 equations in Omega
+			//    - outer normal gives us 3 additional equations to replace Omega's ones
+			//    - normal has no projection on axis for all axis except the first.
+			// Effectively this approach 'smooth' edges and verts.
+			free_border_calc->do_calc(new_node, elastic_matrix3d[stage], previous_values, inner, (random_axis + basis_num)->ksi[stage]);
 
 		} else {
 
@@ -390,7 +398,7 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 				}
 			}
 
-			adhesion_contact_calc->do_calc(new_node, random_axis + basis_num, elastic_matrix3d[stage], previous_values, inner, virt_elastic_matrix3d[stage], virt_previous_values, virt_inner, stage, outer_normal);
+			adhesion_contact_calc->do_calc(new_node, elastic_matrix3d[stage], previous_values, inner, virt_elastic_matrix3d[stage], virt_previous_values, virt_inner, outer_normal);
 
 			free(virt_node->contact_data);
 		}

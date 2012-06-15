@@ -22,7 +22,7 @@ AdhesionContactCalculator* AdhesionContactCalculator::getInstance()
 	return &acc;
 };
 
-void AdhesionContactCalculator::do_calc(ElasticNode* new_node, basis* basis, ElasticMatrix3D* matrix, float* values[], bool inner[], ElasticMatrix3D* virt_matrix, float* virt_values[], bool virt_inner[], int stage, float outer_normal[])
+void AdhesionContactCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], ElasticMatrix3D* virt_matrix, float* virt_values[], bool virt_inner[], float outer_normal[])
 {
 	// Here we will store (omega = Matrix_OMEGA * u)
 	float omega[9];

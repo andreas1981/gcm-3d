@@ -22,7 +22,7 @@ FixedBorderCalculator* FixedBorderCalculator::getInstance()
 	return &fbc;
 };
 
-void FixedBorderCalculator::do_calc(ElasticNode* new_node, basis* basis, ElasticMatrix3D* matrix, float* values[], bool inner[], int stage)
+void FixedBorderCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[])
 {
 
 	// Tmp value for GSL solver

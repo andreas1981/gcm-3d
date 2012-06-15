@@ -13,7 +13,7 @@ class FixedBorderCalculator
 {
 public:
 	static FixedBorderCalculator* getInstance();
-	void do_calc(ElasticNode* new_node, basis* basis, ElasticMatrix3D* matrix, float* values[], bool inner[], int stage);
+	void do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[]);
 
 protected:
 	FixedBorderCalculator();

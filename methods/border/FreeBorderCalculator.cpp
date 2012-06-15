@@ -22,7 +22,7 @@ FreeBorderCalculator* FreeBorderCalculator::getInstance()
 	return &fbc;
 };
 
-void FreeBorderCalculator::do_calc(ElasticNode* new_node, basis* basis, ElasticMatrix3D* matrix, float* values[], bool inner[], int stage)
+void FreeBorderCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[])
 {
 
 	// Tmp value for GSL solver
@@ -62,28 +62,20 @@ void FreeBorderCalculator::do_calc(ElasticNode* new_node, basis* basis, ElasticM
 			// We use outer normal to find total stress vector (sigma * n) - sum of normal and shear - and tell it is zero
 			// TODO - never-ending questions - is everything ok with (x-y-z) and (ksi-eta-dzeta) basises?
 
-			// We use basis axis here instead of outer_normal because:
-			//    - for 'normal' points first axis coincides with normal and that's it
-			//    - for edges and verts it is the only way to avoid singular matrix
-			// Singular matrix appears because:
-			//    - current axis is used for A calculation, thus for 6 equations in Omega
-			//    - outer normal gives us 3 additional equations to replace Omega's ones
-			//    - normal has no projection on axis for all axis except the first.
-			// Effectively this approach 'smooth' edges and verts.
 			if ( outer_count == 3 ) {
-				gsl_matrix_set(U_gsl, i, 3, basis->ksi[stage][0]);
-				gsl_matrix_set(U_gsl, i, 4, basis->ksi[stage][1]);
-				gsl_matrix_set(U_gsl, i, 5, basis->ksi[stage][2]);
+				gsl_matrix_set(U_gsl, i, 3, outer_normal[0]);
+				gsl_matrix_set(U_gsl, i, 4, outer_normal[1]);
+				gsl_matrix_set(U_gsl, i, 5, outer_normal[2]);
 				outer_count--;
 			} else if ( outer_count == 2 ) {
-				gsl_matrix_set(U_gsl, i, 4, basis->ksi[stage][0]);
-				gsl_matrix_set(U_gsl, i, 6, basis->ksi[stage][1]);
-				gsl_matrix_set(U_gsl, i, 7, basis->ksi[stage][2]);
+				gsl_matrix_set(U_gsl, i, 4, outer_normal[0]);
+				gsl_matrix_set(U_gsl, i, 6, outer_normal[1]);
+				gsl_matrix_set(U_gsl, i, 7, outer_normal[2]);
 				outer_count--;
 			} else if ( outer_count == 1 ) {
-				gsl_matrix_set(U_gsl, i, 5, basis->ksi[stage][0]);
-				gsl_matrix_set(U_gsl, i, 7, basis->ksi[stage][1]);
-				gsl_matrix_set(U_gsl, i, 8, basis->ksi[stage][2]);
+				gsl_matrix_set(U_gsl, i, 5, outer_normal[0]);
+				gsl_matrix_set(U_gsl, i, 7, outer_normal[1]);
+				gsl_matrix_set(U_gsl, i, 8, outer_normal[2]);
 				outer_count--;
 			}
 		}
