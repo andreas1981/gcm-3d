@@ -10,16 +10,13 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::GCM_Tetr_Plastic_Interpolat
 	virt_elastic_matrix3d[0] = new ElasticMatrix3D();
 	virt_elastic_matrix3d[1] = new ElasticMatrix3D();
 	virt_elastic_matrix3d[2] = new ElasticMatrix3D();
-	U_gsl_18 = gsl_matrix_alloc (18, 18);
-	om_gsl_18 = gsl_vector_alloc (18);
-	x_gsl_18 = gsl_vector_alloc (18);
-	p_gsl_18 = gsl_permutation_alloc (18);
 	random_axis = NULL;
 	random_axis_inv = NULL;
 	basis_quantity = 0;
 	volume_calc = new SimpleVolumeCalculator();
 	free_border_calc = new FreeBorderCalculator();
 	fixed_border_calc = new FixedBorderCalculator();
+	adhesion_contact_calc = new AdhesionContactCalculator();
 };
 
 GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::~GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis()
@@ -30,10 +27,6 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::~GCM_Tetr_Plastic_Interpola
 	delete(virt_elastic_matrix3d[0]);
 	delete(virt_elastic_matrix3d[1]);
 	delete(virt_elastic_matrix3d[2]);
-	gsl_matrix_free(U_gsl_18);
-	gsl_vector_free(om_gsl_18);
-	gsl_vector_free(x_gsl_18);
-	gsl_permutation_free(p_gsl_18);
 	if(random_axis != NULL)
 		free(random_axis);
 	if(random_axis_inv != NULL)
@@ -41,6 +34,7 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::~GCM_Tetr_Plastic_Interpola
 	delete volume_calc;
 	delete free_border_calc;
 	delete fixed_border_calc;
+	delete adhesion_contact_calc;
 };
 
 int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_part_step(ElasticNode* cur_node, ElasticMatrix3D* matrix, int stage, int basis_num)
@@ -406,126 +400,11 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 				}
 			}
 
-			// Real calculation begins
-			int posInEq18;
-			int curNN;
-
-			posInEq18 = 0;
-			curNN = 0;
-			// For all omegas of real node
+			float* virt_previous_values[9];
 			for(int i = 0; i < 9; i++)
-			{
-				// If omega is 'inner'
-				if(inner[i])
-				{
-					// omega on new time layer is equal to omega on previous time layer along characteristic
-					omega[i] = 0;
-					for( int j = 0; j < 9; j++ ) {
-						omega[i] += elastic_matrix3d[stage]->U(i,j) 
-									* previous_nodes[ppoint_num[i]].values[j];
-					}
+				virt_previous_values[i] = &virt_previous_nodes[virt_ppoint_num[i]].values[0];
 
-					// then we must set the corresponding values of the 18x18 matrix
-					gsl_vector_set( om_gsl_18, 6 * curNN + posInEq18, omega[i] );
-
-					for( int j = 0; j < 9; j++ ) {
-						gsl_matrix_set( U_gsl_18, 6 * curNN + posInEq18, j, elastic_matrix3d[stage]->U( i, j ) );
-					}
-					for( int j = 9; j < 18; j++ ) {
-						gsl_matrix_set( U_gsl_18, 6 * curNN + posInEq18, j, 0 );
-					}
-					posInEq18++;
-				}
-			}
-			posInEq18 = 0;
-			curNN = 1;
-			// For all omegas of virtual node
-			for(int i = 0; i < 9; i++)
-			{
-				// If omega is 'inner'
-				if(virt_inner[i])
-				{
-					// omega on new time layer is equal to omega on previous time layer along characteristic
-					virt_omega[i] = 0;
-					for( int j = 0; j < 9; j++ ) {
-						virt_omega[i] += virt_elastic_matrix3d[stage]->U(i,j) 
-									* virt_previous_nodes[virt_ppoint_num[i]].values[j];
-					}
-
-					// then we must set the corresponding values of the 18x18 matrix
-					gsl_vector_set( om_gsl_18, 6 * curNN + posInEq18, virt_omega[i] );
-
-					for( int j = 0; j < 9; j++ ) {
-						gsl_matrix_set( U_gsl_18, 6 * curNN + posInEq18, j, 0 );
-					}
-					for( int j = 9; j < 18; j++ ) {
-						gsl_matrix_set( U_gsl_18, 6 * curNN + posInEq18, j, virt_elastic_matrix3d[stage]->U( i, j - 9 ) );
-					}
-					posInEq18++;
-				}
-			}
-
-			// Clear the rest 6 rows of the matrix
-			for( int strN = 12; strN < 18; strN++ ) {
-				for( int colN = 0; colN < 18; colN++ ) {
-					gsl_matrix_set( U_gsl_18, strN, colN, 0 );
-				}
-			}
-
-			for( int strN = 12; strN < 18; strN++ ) {
-				gsl_vector_set( om_gsl_18, strN, 0 );
-			}
-
-			// Equality of velocities
-			gsl_matrix_set( U_gsl_18, 12, 0, 1 );
-			gsl_matrix_set( U_gsl_18, 12, 9, -1 );
-			gsl_matrix_set( U_gsl_18, 13, 1, 1 );
-			gsl_matrix_set( U_gsl_18, 13, 10, -1 );
-			gsl_matrix_set( U_gsl_18, 14, 2, 1 );
-			gsl_matrix_set( U_gsl_18, 14, 11, -1 );		
-	
-			// Equality of normal and tangential stress
-			// We use outer normal to find total stress vector (sigma * n) - sum of normal and shear - and tell it is equal
-			// TODO - is it ok?
-			// TODO - never-ending questions - is everything ok with (x-y-z) and (ksi-eta-dzeta) basises?
-
-			// TODO FIXME - it works now because exactly the first axis is the only one where contact is possible
-			// and it coincides with outer normal
-			gsl_matrix_set(U_gsl_18, 15, 3, outer_normal[0]);
-			gsl_matrix_set(U_gsl_18, 15, 4, outer_normal[1]);
-			gsl_matrix_set(U_gsl_18, 15, 5, outer_normal[2]);
-
-			gsl_matrix_set(U_gsl_18, 15, 12, -outer_normal[0]);
-			gsl_matrix_set(U_gsl_18, 15, 13, -outer_normal[1]);
-			gsl_matrix_set(U_gsl_18, 15, 14, -outer_normal[2]);
-
-
-			gsl_matrix_set(U_gsl_18, 16, 4, outer_normal[0]);
-			gsl_matrix_set(U_gsl_18, 16, 6, outer_normal[1]);
-			gsl_matrix_set(U_gsl_18, 16, 7, outer_normal[2]);
-
-			gsl_matrix_set(U_gsl_18, 16, 13, -outer_normal[0]);
-			gsl_matrix_set(U_gsl_18, 16, 15, -outer_normal[1]);
-			gsl_matrix_set(U_gsl_18, 16, 16, -outer_normal[2]);
-
-
-			gsl_matrix_set(U_gsl_18, 17, 5, outer_normal[0]);
-			gsl_matrix_set(U_gsl_18, 17, 7, outer_normal[1]);
-			gsl_matrix_set(U_gsl_18, 17, 8, outer_normal[2]);
-
-			gsl_matrix_set(U_gsl_18, 17, 14, -outer_normal[0]);
-			gsl_matrix_set(U_gsl_18, 17, 16, -outer_normal[1]);
-			gsl_matrix_set(U_gsl_18, 17, 17, -outer_normal[2]);
-
-
-			// Tmp value for GSL solver
-			int s;
-			gsl_linalg_LU_decomp (U_gsl_18, p_gsl_18, &s);
-			gsl_linalg_LU_solve (U_gsl_18, p_gsl_18, om_gsl_18, x_gsl_18);
-
-			// Just get first 9 values (real node) and dump the rest 9 (virt node)
-			for(int j = 0; j < 9; j++)
-				new_node->values[j] = gsl_vector_get(x_gsl_18, j);
+			adhesion_contact_calc->do_calc(new_node, random_axis + basis_num, elastic_matrix3d[stage], previous_values, inner, virt_elastic_matrix3d[stage], virt_previous_values, virt_inner, stage, outer_normal);
 
 			free(virt_node->contact_data);
 		}

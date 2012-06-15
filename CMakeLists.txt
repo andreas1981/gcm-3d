@@ -35,6 +35,7 @@ set ( SOURCES
 	./methods/volume/SimpleVolumeCalculator.cpp
 	./methods/border/FreeBorderCalculator.cpp
 	./methods/border/FixedBorderCalculator.cpp
+	./methods/contact/AdhesionContactCalculator.cpp
 	./system/GCMStresser.cpp
 	./system/GCMException.cpp
 	./system/TaskPreparator.cpp
