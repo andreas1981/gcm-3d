@@ -9,11 +9,11 @@ class ElasticMatrix3D
 public:
 	ElasticMatrix3D();
 	~ElasticMatrix3D();
-	int prepare_matrix(float la, float mu, float ro, int stage);
-	int prepare_matrix(float la, float mu, float ro, float qjx, float qjy, float qjz);
+	void prepare_matrix(float la, float mu, float ro, int stage);
+	void prepare_matrix(float la, float mu, float ro, float qjx, float qjy, float qjz);
 	float max_lambda();
 
-	int self_check();
+	void self_check();
 
 	gcm_matrix A;
 	gcm_matrix L;

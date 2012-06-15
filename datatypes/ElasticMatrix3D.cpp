@@ -2,16 +2,12 @@
 
 ElasticMatrix3D::ElasticMatrix3D()
 {
-//	A.resize(9,9);
-//	L.resize(9,9);
-//	U.resize(9,9);
-//	U1.resize(9,9);
 	zero_all();
 };
 
 ElasticMatrix3D::~ElasticMatrix3D() { };
 
-int ElasticMatrix3D::prepare_matrix(float la, float mu, float ro, int stage)
+void ElasticMatrix3D::prepare_matrix(float la, float mu, float ro, int stage)
 {
 	if((la <= 0) || (mu <= 0) || (ro <= 0))
 		throw GCMException( GCMException::CONFIG_EXCEPTION, "Bad rheology");
@@ -25,10 +21,9 @@ int ElasticMatrix3D::prepare_matrix(float la, float mu, float ro, int stage)
 	} else {
 		throw GCMException( GCMException::CONFIG_EXCEPTION, "Wrong stage number");
 	}
-	return 0;
 };
 
-int ElasticMatrix3D::prepare_matrix(float la, float mu, float ro, float qjx, float qjy, float qjz)
+void ElasticMatrix3D::prepare_matrix(float la, float mu, float ro, float qjx, float qjy, float qjz)
 {
 	if((la <= 0) || (mu <= 0) || (ro <= 0))
 		throw GCMException( GCMException::CONFIG_EXCEPTION, "Bad rheology");
@@ -37,17 +32,14 @@ int ElasticMatrix3D::prepare_matrix(float la, float mu, float ro, float qjx, flo
 		throw GCMException( GCMException::CONFIG_EXCEPTION, "Bad vector q");
 
 	CreateGeneralizedMatrix(la, mu, ro, qjx, qjy, qjz);
-
-	return 0;
 };
 
-int ElasticMatrix3D::self_check()
+void ElasticMatrix3D::self_check()
 {
 	gcm_matrix E;
 	E.createE();
 	if( (U1 * L * U != A) || (A * U1 != U1 * L) || (U * A != L * U) || (U1 * U !=  E) )
 		throw GCMException( GCMException::CONFIG_EXCEPTION, "Self check failed");
-	return 0;
 }
 
 float ElasticMatrix3D::max_lambda()
