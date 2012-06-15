@@ -10,9 +10,12 @@ using std::vector;
 class SimpleVolumeCalculator
 {
 public:
+	static SimpleVolumeCalculator* getInstance();
+	void do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[]);
+protected:
 	SimpleVolumeCalculator();
 	~SimpleVolumeCalculator();
-	void do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[]);
+
 };
 
 #endif

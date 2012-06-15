@@ -12,9 +12,13 @@ using std::vector;
 class AdhesionContactCalculator
 {
 public:
+	static AdhesionContactCalculator* getInstance();
+	void do_calc(ElasticNode* new_node, basis* basis, ElasticMatrix3D* matrix, float* values[], bool inner[], ElasticMatrix3D* virt_matrix, float* virt_values[], bool virt_inner[], int stage, float outer_normal[]);
+
+protected:
 	AdhesionContactCalculator();
 	~AdhesionContactCalculator();
-	void do_calc(ElasticNode* new_node, basis* basis, ElasticMatrix3D* matrix, float* values[], bool inner[], ElasticMatrix3D* virt_matrix, float* virt_values[], bool virt_inner[], int stage, float outer_normal[]);
+
 private:
 	// Used for border calculation
 	gsl_matrix *U_gsl;

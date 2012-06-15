@@ -12,9 +12,13 @@ using std::vector;
 class FreeBorderCalculator
 {
 public:
+	static FreeBorderCalculator* getInstance();
+	void do_calc(ElasticNode* new_node, basis* basis, ElasticMatrix3D* matrix, float* values[], bool inner[], int stage);
+
+protected:
 	FreeBorderCalculator();
 	~FreeBorderCalculator();
-	void do_calc(ElasticNode* new_node, basis* basis, ElasticMatrix3D* matrix, float* values[], bool inner[], int stage);
+
 private:
 	// Used for border calculation
 	gsl_matrix *U_gsl;

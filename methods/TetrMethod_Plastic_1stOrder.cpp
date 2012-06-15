@@ -13,10 +13,10 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::GCM_Tetr_Plastic_Interpolat
 	random_axis = NULL;
 	random_axis_inv = NULL;
 	basis_quantity = 0;
-	volume_calc = new SimpleVolumeCalculator();
-	free_border_calc = new FreeBorderCalculator();
-	fixed_border_calc = new FixedBorderCalculator();
-	adhesion_contact_calc = new AdhesionContactCalculator();
+	volume_calc = SimpleVolumeCalculator::getInstance();
+	free_border_calc = FreeBorderCalculator::getInstance();
+	fixed_border_calc = FixedBorderCalculator::getInstance();
+	adhesion_contact_calc = AdhesionContactCalculator::getInstance();
 };
 
 GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::~GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis()
@@ -31,10 +31,6 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::~GCM_Tetr_Plastic_Interpola
 		free(random_axis);
 	if(random_axis_inv != NULL)
 		free(random_axis_inv);
-	delete volume_calc;
-	delete free_border_calc;
-	delete fixed_border_calc;
-	delete adhesion_contact_calc;
 };
 
 void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_part_step(ElasticNode* cur_node, ElasticMatrix3D* matrix, int stage, int basis_num)
