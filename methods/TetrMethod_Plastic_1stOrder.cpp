@@ -10,10 +10,6 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::GCM_Tetr_Plastic_Interpolat
 	virt_elastic_matrix3d[0] = new ElasticMatrix3D();
 	virt_elastic_matrix3d[1] = new ElasticMatrix3D();
 	virt_elastic_matrix3d[2] = new ElasticMatrix3D();
-	U_gsl = gsl_matrix_alloc (9, 9);
-	om_gsl = gsl_vector_alloc (9);
-	x_gsl = gsl_vector_alloc (9);
-	p_gsl = gsl_permutation_alloc (9);
 	U_gsl_18 = gsl_matrix_alloc (18, 18);
 	om_gsl_18 = gsl_vector_alloc (18);
 	x_gsl_18 = gsl_vector_alloc (18);
@@ -21,6 +17,9 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::GCM_Tetr_Plastic_Interpolat
 	random_axis = NULL;
 	random_axis_inv = NULL;
 	basis_quantity = 0;
+	volume_calc = new SimpleVolumeCalculator();
+	free_border_calc = new FreeBorderCalculator();
+	fixed_border_calc = new FixedBorderCalculator();
 };
 
 GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::~GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis()
@@ -31,10 +30,6 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::~GCM_Tetr_Plastic_Interpola
 	delete(virt_elastic_matrix3d[0]);
 	delete(virt_elastic_matrix3d[1]);
 	delete(virt_elastic_matrix3d[2]);
-	gsl_matrix_free(U_gsl);
-	gsl_vector_free(om_gsl);
-	gsl_vector_free(x_gsl);
-	gsl_permutation_free(p_gsl);
 	gsl_matrix_free(U_gsl_18);
 	gsl_vector_free(om_gsl_18);
 	gsl_vector_free(x_gsl_18);
@@ -43,6 +38,9 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::~GCM_Tetr_Plastic_Interpola
 		free(random_axis);
 	if(random_axis_inv != NULL)
 		free(random_axis_inv);
+	delete volume_calc;
+	delete free_border_calc;
+	delete fixed_border_calc;
 };
 
 int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_part_step(ElasticNode* cur_node, ElasticMatrix3D* matrix, int stage, int basis_num)
@@ -229,6 +227,10 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 	// Number of outer characteristics
 	int outer_count = prepare_node(cur_node, elastic_matrix3d, time_step, stage, mesh, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num);
 
+	float* previous_values[9];
+	for(int i = 0; i < 9; i++)
+		previous_values[i] = &previous_nodes[ppoint_num[i]].values[0];
+
 	// TODO - merge this condition with the next ones
 	if((outer_count != 0) && (outer_count != 3)) {
 		*logger << "There are " << outer_count < " 'outer' characteristics.";
@@ -251,26 +253,8 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 		// 	throw GCMException(GCMException::METHOD_EXCEPTION, "outer_count == 0 for BORDER node");
 		// }
 
-		// Calculate omega value
-		for(int i = 0; i < 9; i++)
-		{
-			// omega on new time layer is equal to omega on previous time layer along characteristic
-			omega[i] = 0;
-			for(int j = 0; j < 9; j++)
-			{
-				omega[i] += elastic_matrix3d[stage]->U(i,j) 
-							* previous_nodes[ppoint_num[i]].values[j];
-			}
-		}
-		// Calculate new values
-		for(int i = 0; i < 9; i++)
-		{
-			new_node->values[i] = 0;
-			for(int j = 0; j < 9; j++)
-			{
-				new_node->values[i] += elastic_matrix3d[stage]->U1(i,j) * omega[j];
-			}
-		}
+		volume_calc->do_calc(new_node, elastic_matrix3d[stage], previous_values);
+
 	}
 	// If there are 3 'outer' omegas - we should use border or contact algorithm
 	// TODO - ... we should also use it when l*t/h > 1 and there is 1 'outer' omega
@@ -301,127 +285,10 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 
 		// If both directions show no contact - use border algorithm, otherwise use contact algorithm
 		// Border algorithm
-		if( ( cur_node->contact_data != NULL )
-			 && ( cur_node->contact_data->axis_plus[stage] == -1 ) && ( cur_node->contact_data->axis_minus[stage] == -1 ) )
+		if( ( cur_node->contact_data->axis_plus[stage] == -1 ) && ( cur_node->contact_data->axis_minus[stage] == -1 ) )
 		{
 
-			// Tmp value for GSL solver
-			int s;
-
-			// Fixed border algorithm
-			/*for(int i = 0; i < 9; i++)
-			{
-				// If omega is 'inner' one
-				if(inner[i])
-				{
-					// Calculate omega value
-					omega[i] = 0;
-					for(int j = 0; j < 9; j++)
-					{
-						omega[i] += elastic_matrix3d[stage]->U(i,j) 
-									* previous_nodes[ppoint_num[i]].values[j];
-					}
-					// Load appropriate values into GSL containers
-					gsl_vector_set(om_gsl, i, omega[i]);
-					for(int j = 0; j < 9; j++)
-						gsl_matrix_set(U_gsl, i, j, elastic_matrix3d[stage]->U(i,j));
-				}
-				// If omega is 'outer' one
-				else
-				{
-					// omega (as right-hand part of OLE) is zero - it is not-moving border
-					gsl_vector_set(om_gsl, i, 0);
-					// corresponding string in matrix is zero ...
-					for(int j = 0; j < 9; j++)
-						gsl_matrix_set(U_gsl, i, j, 0);
-					// ... except velocity
-					if( stage < 3 )
-					{
-						if ( outer_count == 3 ) {
-							gsl_matrix_set(U_gsl, i, 0, 1); outer_count--;
-						} else if ( outer_count == 2 ) {
-							gsl_matrix_set(U_gsl, i, 1, 1); outer_count--;
-						} else if ( outer_count == 1 ) {
-							gsl_matrix_set(U_gsl, i, 2, 1); outer_count--;
-						}
-					}
-					else 
-					{
-						throw GCMException(GCMException::METHOD_EXCEPTION, "Bad stage number");
-					}
-				}
-			}*/
-
-			// Free border algorithm
-			for(int i = 0; i < 9; i++)
-			{
-				// If omega is 'inner' one
-				if(inner[i])
-				{
-					// Calculate omega value
-					omega[i] = 0;
-					for(int j = 0; j < 9; j++)
-					{
-						omega[i] += elastic_matrix3d[stage]->U(i,j) 
-									* previous_nodes[ppoint_num[i]].values[j];
-					}
-					// Load appropriate values into GSL containers
-					gsl_vector_set(om_gsl, i, omega[i]);
-					for(int j = 0; j < 9; j++)
-						gsl_matrix_set(U_gsl, i, j, elastic_matrix3d[stage]->U(i,j));
-				}
-				// If omega is 'outer' one
-				else
-				{
-					// omega (as right-hand part of OLE) is zero - it is free border, no external stress
-					gsl_vector_set(om_gsl, i, 0);
-					// corresponding string in matrix is zero ...
-					for(int j = 0; j < 9; j++)
-						gsl_matrix_set(U_gsl, i, j, 0);
-
-					// ... except normal and tangential stress
-					// We use outer normal to find total stress vector (sigma * n) - sum of normal and shear - and tell it is zero
-					// TODO - never-ending questions - is everything ok with (x-y-z) and (ksi-eta-dzeta) basises?
-					if( stage < 3 )
-					{
-						// We use basis axis here instead of outer_normal because:
-						//    - for 'normal' points first axis coincides with normal and that's it
-						//    - for edges and verts it is the only way to avoid singular matrix
-						// Singular matrix appears because:
-						//    - current axis is used for A calculation, thus for 6 equations in Omega
-						//    - outer normal gives us 3 additional equations to replace Omega's ones
-						//    - normal has no projection on axis for all axis except the first.
-						// Effectively this approach 'smooth' edges and verts.
-						if ( outer_count == 3 ) {
-							gsl_matrix_set(U_gsl, i, 3, random_axis[basis_num].ksi[stage][0]);
-							gsl_matrix_set(U_gsl, i, 4, random_axis[basis_num].ksi[stage][1]);
-							gsl_matrix_set(U_gsl, i, 5, random_axis[basis_num].ksi[stage][2]);
-							outer_count--;
-						} else if ( outer_count == 2 ) {
-							gsl_matrix_set(U_gsl, i, 4, random_axis[basis_num].ksi[stage][0]);
-							gsl_matrix_set(U_gsl, i, 6, random_axis[basis_num].ksi[stage][1]);
-							gsl_matrix_set(U_gsl, i, 7, random_axis[basis_num].ksi[stage][2]);
-							outer_count--;
-						} else if ( outer_count == 1 ) {
-							gsl_matrix_set(U_gsl, i, 5, random_axis[basis_num].ksi[stage][0]);
-							gsl_matrix_set(U_gsl, i, 7, random_axis[basis_num].ksi[stage][1]);
-							gsl_matrix_set(U_gsl, i, 8, random_axis[basis_num].ksi[stage][2]);
-							outer_count--;
-						}
-					}
-					else 
-					{
-						throw GCMException(GCMException::METHOD_EXCEPTION, "Wrong stage number");
-					}
-				}
-			}
-
-			// Solve linear equations using GSL tools
-			gsl_linalg_LU_decomp (U_gsl, p_gsl, &s);
-			gsl_linalg_LU_solve (U_gsl, p_gsl, om_gsl, x_gsl);
-
-			for(int j = 0; j < 9; j++)
-				new_node->values[j] = gsl_vector_get(x_gsl, j);
+			free_border_calc->do_calc(new_node, random_axis + basis_num, elastic_matrix3d[stage], previous_values, inner, stage);
 
 		// Contact algorithm
 		// Idea taken from @sedire and it made working with virt node from mesh_set and with random axis

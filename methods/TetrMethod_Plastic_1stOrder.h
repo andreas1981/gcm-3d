@@ -14,6 +14,9 @@ using std::set;
 #include "../system/quick_math.h"
 #include "../meshtypes/TetrMesh.h"
 #include "../system/TetrMeshSet.h"
+#include "./volume/SimpleVolumeCalculator.h"
+#include "./border/FreeBorderCalculator.h"
+#include "./border/FixedBorderCalculator.h"
 
 class GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis : public TetrNumericalMethod
 	// TODO may be we should inherit methods from GCM_Tetr_Plastic_Interpolation_1stOrder
@@ -29,16 +32,15 @@ protected:
 	ElasticMatrix3D* elastic_matrix3d[3];
 	// Used for interpolated virtual node in case of contact algorithm
 	ElasticMatrix3D* virt_elastic_matrix3d[3];
-	// Used for border calculation
-	gsl_matrix *U_gsl;
-	gsl_vector *om_gsl;
-	gsl_vector *x_gsl;
-	gsl_permutation *p_gsl;
 	// Used for contact calculation
 	gsl_matrix *U_gsl_18;
 	gsl_vector *om_gsl_18;
 	gsl_vector *x_gsl_18;
 	gsl_permutation *p_gsl_18;
+
+	SimpleVolumeCalculator* volume_calc;
+	FreeBorderCalculator* free_border_calc;
+	FixedBorderCalculator* fixed_border_calc;
 
 	int prepare_node(ElasticNode* cur_node, ElasticMatrix3D* matrixes[], float time_step, int stage, TetrMesh* mesh, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num);
 	int prepare_node(ElasticNode* cur_node, ElasticMatrix3D* matrixes[], float time_step, int stage, TetrMesh* mesh, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num, bool debug);

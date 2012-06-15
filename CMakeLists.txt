@@ -32,6 +32,9 @@ set ( SOURCES
 	./methods/TetrNumericalMethod.cpp
 	./methods/TetrMethod_Plastic_1stOrder.cpp
 	./methods/NumericalMethod.cpp
+	./methods/volume/SimpleVolumeCalculator.cpp
+	./methods/border/FreeBorderCalculator.cpp
+	./methods/border/FixedBorderCalculator.cpp
 	./system/GCMStresser.cpp
 	./system/GCMException.cpp
 	./system/TaskPreparator.cpp
