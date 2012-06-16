@@ -18,6 +18,7 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::GCM_Tetr_Plastic_Interpolat
 	fixed_border_calc = FixedBorderCalculator::getInstance();
 	ext_force_calc = ExternalForceCalculator::getInstance();
 	ext_v_calc = ExternalVelocityCalculator::getInstance();
+	ext_val_calc = ExternalValuesCalculator::getInstance();
 	adhesion_contact_calc = AdhesionContactCalculator::getInstance();
 };
 

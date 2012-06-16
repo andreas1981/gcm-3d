@@ -37,6 +37,7 @@ set ( SOURCES
 	./methods/border/FixedBorderCalculator.cpp
 	./methods/border/ExternalForceCalculator.cpp
 	./methods/border/ExternalVelocityCalculator.cpp
+	./methods/border/ExternalValuesCalculator.cpp
 	./methods/contact/AdhesionContactCalculator.cpp
 	./system/GCMStresser.cpp
 	./system/GCMException.cpp
