@@ -16,6 +16,7 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::GCM_Tetr_Plastic_Interpolat
 	volume_calc = SimpleVolumeCalculator::getInstance();
 	free_border_calc = FreeBorderCalculator::getInstance();
 	fixed_border_calc = FixedBorderCalculator::getInstance();
+	ext_force_calc = ExternalForceCalculator::getInstance();
 	adhesion_contact_calc = AdhesionContactCalculator::getInstance();
 };
 
@@ -278,7 +279,7 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 			//    - outer normal gives us 3 additional equations to replace Omega's ones
 			//    - normal has no projection on axis for all axis except the first.
 			// Effectively this approach 'smooth' edges and verts.
-			free_border_calc->do_calc(new_node, elastic_matrix3d[stage], previous_values, inner, (random_axis + basis_num)->ksi[stage]);
+			ext_force_calc->do_calc(new_node, elastic_matrix3d[stage], previous_values, inner, (random_axis + basis_num)->ksi[stage]);
 
 		} else {
 
