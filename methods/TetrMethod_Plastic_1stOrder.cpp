@@ -281,7 +281,7 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 			//    - outer normal gives us 3 additional equations to replace Omega's ones
 			//    - normal has no projection on axis for all axis except the first.
 			// Effectively this approach 'smooth' edges and verts.
-			cur_node->border_condition->calc->do_calc(new_node, elastic_matrix3d[stage], previous_values, inner, (random_axis + basis_num)->ksi[stage]);
+			cur_node->border_condition->do_calc(mesh->get_current_time(), cur_node->coords, new_node, elastic_matrix3d[stage], previous_values, inner, (random_axis + basis_num)->ksi[stage]);
 
 		} else {
 
@@ -401,7 +401,7 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 				}
 			}
 
-			cur_node->contact_condition->calc->do_calc(new_node, elastic_matrix3d[stage], previous_values, inner, virt_elastic_matrix3d[stage], virt_previous_values, virt_inner, outer_normal);
+			cur_node->contact_condition->do_calc(mesh->get_current_time(), cur_node->coords, new_node, elastic_matrix3d[stage], previous_values, inner, virt_elastic_matrix3d[stage], virt_previous_values, virt_inner, outer_normal);
 
 			free(virt_node->contact_data);
 		}

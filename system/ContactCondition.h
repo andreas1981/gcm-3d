@@ -11,6 +11,7 @@ public:
 	Area* area;
 	PulseForm* form;
 	ContactCalculator* calc;
+	void do_calc(float time, float* cur_coords, ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], ElasticMatrix3D* virt_matrix, float* virt_values[], bool virt_inner[], float outer_normal[]);
 };
 
 #endif
