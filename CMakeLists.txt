@@ -60,6 +60,14 @@ set ( SOURCES
 	./system/Logger.cpp
 	./system/DataBus.cpp
 	./system/Utils.cpp
+	./system/areas/Area.cpp
+	./system/areas/BoxArea.cpp
+	./system/areas/SphereArea.cpp
+	./system/areas/CylinderArea.cpp
+	./system/forms/PulseForm.cpp
+	./system/forms/StepPulseForm.cpp
+	./system/BorderCondition.cpp
+	./system/ContactCondition.cpp
 	./main.cpp )
 
 add_executable (${PROJECT} ${SOURCES})
