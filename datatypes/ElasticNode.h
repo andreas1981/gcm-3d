@@ -7,6 +7,9 @@ using std::vector;
 #include "Node.h"
 
 class TetrMesh_1stOrder;
+class VolumeCalculator;
+class BorderCondition;
+class ContactCondition;
 
 class ElasticNode : public Node
 {
@@ -43,6 +46,10 @@ public:
 	vector<int>* elements;
 	vector<int>* border_elements;
 	TetrMesh_1stOrder* mesh;
+
+	VolumeCalculator* volume_calculator;
+	BorderCondition* border_condition;
+	ContactCondition* contact_condition;
 protected:
 	// TODO should we switch from vector to memmory block with offsets in it?
 	// int elems_offset;
