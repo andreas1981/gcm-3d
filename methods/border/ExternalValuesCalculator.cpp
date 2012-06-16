@@ -1,12 +1,5 @@
 #include "ExternalValuesCalculator.h"
 
-#define VAR1 0
-#define VAL1 0
-#define VAR2 1
-#define VAL2 0
-#define VAR3 2
-#define VAL3 0
-
 ExternalValuesCalculator::ExternalValuesCalculator()
 {
 	U_gsl = gsl_matrix_alloc (9, 9);
@@ -21,6 +14,14 @@ ExternalValuesCalculator::~ExternalValuesCalculator()
 	gsl_vector_free(om_gsl);
 	gsl_vector_free(x_gsl);
 	gsl_permutation_free(p_gsl);
+};
+
+void ExternalValuesCalculator::set_parameters(int vars[], float vals[])
+{
+	for(int i = 0; i < 3; i++) {
+		vars_index[i] = vars[i];
+		vars_values[i] = vals[i];
+	}
 };
 
 void ExternalValuesCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[], float scale)
@@ -64,16 +65,16 @@ void ExternalValuesCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* m
 			// TODO - never-ending questions - is everything ok with (x-y-z) and (ksi-eta-dzeta) basises?
 
 			if ( outer_count == 3 ) {
-				gsl_matrix_set(U_gsl, i, VAR1, 1);
-				gsl_vector_set(om_gsl, i, VAL1);
+				gsl_matrix_set(U_gsl, i, vars_index[0], 1);
+				gsl_vector_set(om_gsl, i, vars_values[0]);
 				outer_count--;
 			} else if ( outer_count == 2 ) {
-				gsl_matrix_set(U_gsl, i, VAR2, 1);
-				gsl_vector_set(om_gsl, i, VAL2);
+				gsl_matrix_set(U_gsl, i, vars_index[1], 1);
+				gsl_vector_set(om_gsl, i, vars_values[1]);
 				outer_count--;
 			} else if ( outer_count == 1 ) {
-				gsl_matrix_set(U_gsl, i, VAR3, 1);
-				gsl_vector_set(om_gsl, i, VAL3);
+				gsl_matrix_set(U_gsl, i, vars_index[2], 1);
+				gsl_vector_set(om_gsl, i, vars_values[2]);
 				outer_count--;
 			}
 		}

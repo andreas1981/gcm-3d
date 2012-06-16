@@ -12,9 +12,15 @@ public:
 	~ExternalVelocityCalculator();
 	void do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[], float scale);
 
+	void set_parameters(float vn, float vt, float xv, float yv, float zv);
+
 protected:
 
 private:
+	float normal_v;
+	float tangential_v;
+	float tangential_direction[3];
+
 	// Used for border calculation
 	gsl_matrix *U_gsl;
 	gsl_vector *om_gsl;

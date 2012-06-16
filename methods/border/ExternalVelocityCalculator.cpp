@@ -16,6 +16,16 @@ ExternalVelocityCalculator::~ExternalVelocityCalculator()
 	gsl_permutation_free(p_gsl);
 };
 
+void ExternalVelocityCalculator::set_parameters(float vn, float vt, float xv, float yv, float zv)
+{
+	normal_v = vn;
+	tangential_v = vt;
+	float dtmp = qm.vector_norm(xv, yv, zv);
+	tangential_direction[0] = xv / dtmp;
+	tangential_direction[1] = yv / dtmp;
+	tangential_direction[2] = zv / dtmp;
+};
+
 void ExternalVelocityCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[], float scale)
 {
 
@@ -64,18 +74,25 @@ void ExternalVelocityCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D*
 				gsl_matrix_set(U_gsl, i, 0, local_n[0][0]);
 				gsl_matrix_set(U_gsl, i, 1, local_n[0][1]);
 				gsl_matrix_set(U_gsl, i, 2, local_n[0][2]);
+				gsl_vector_set(om_gsl, i, scale * normal_v);
 				outer_count--;
 			} else if ( outer_count == 2 ) {
 				// Velocity tangential
 				gsl_matrix_set(U_gsl, i, 0, local_n[1][0]);
 				gsl_matrix_set(U_gsl, i, 1, local_n[1][1]);
 				gsl_matrix_set(U_gsl, i, 2, local_n[1][2]);
+				gsl_vector_set(om_gsl, i, scale * tangential_v * qm.scalar_product(
+							local_n[1][0], local_n[1][1], local_n[1][2], 
+							tangential_direction[0], tangential_direction[1], tangential_direction[2]) );
 				outer_count--;
 			} else if ( outer_count == 1 ) {
 				// Velocity tangential
 				gsl_matrix_set(U_gsl, i, 0, local_n[2][0]);
 				gsl_matrix_set(U_gsl, i, 1, local_n[2][1]);
 				gsl_matrix_set(U_gsl, i, 2, local_n[2][2]);
+				gsl_vector_set(om_gsl, i, scale * tangential_v * qm.scalar_product(
+							local_n[2][0], local_n[2][1], local_n[2][2], 
+							tangential_direction[0], tangential_direction[1], tangential_direction[2]) );
 				outer_count--;
 			}
 		}

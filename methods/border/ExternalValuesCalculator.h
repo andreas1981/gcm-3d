@@ -11,9 +11,14 @@ public:
 	~ExternalValuesCalculator();
 	void do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[], float scale);
 
+	void set_parameters(int vars[], float vals[]);
+
 protected:
 
 private:
+	int vars_index[3];
+	float vars_values[3];
+
 	// Used for border calculation
 	gsl_matrix *U_gsl;
 	gsl_vector *om_gsl;

@@ -16,6 +16,16 @@ ExternalForceCalculator::~ExternalForceCalculator()
 	gsl_permutation_free(p_gsl);
 };
 
+void ExternalForceCalculator::set_parameters(float sn, float st, float xv, float yv, float zv)
+{
+	normal_stress = sn;
+	tangential_stress = st;
+	float dtmp = qm.vector_norm(xv, yv, zv);
+	tangential_direction[0] = xv / dtmp;
+	tangential_direction[1] = yv / dtmp;
+	tangential_direction[2] = zv / dtmp;
+};
+
 void ExternalForceCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[], float scale)
 {
 
@@ -71,6 +81,7 @@ void ExternalForceCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* ma
 				gsl_matrix_set(U_gsl, i, 6, local_n[0][1] * local_n[0][1]);
 				gsl_matrix_set(U_gsl, i, 7, 2 * local_n[0][2] * local_n[0][1]);
 				gsl_matrix_set(U_gsl, i, 8, local_n[0][2] * local_n[0][2]);
+				gsl_vector_set(om_gsl, i, scale * normal_stress);
 				outer_count--;
 			} else if ( outer_count == 2 ) {
 				// Sigma tangential
@@ -80,6 +91,9 @@ void ExternalForceCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* ma
 				gsl_matrix_set(U_gsl, i, 6, local_n[0][1] * local_n[1][1]);
 				gsl_matrix_set(U_gsl, i, 7, local_n[0][2] * local_n[1][1] + local_n[0][1] * local_n[1][2]);
 				gsl_matrix_set(U_gsl, i, 8, local_n[0][2] * local_n[1][2]);
+				gsl_vector_set(om_gsl, i, scale * tangential_stress * qm.scalar_product(
+							local_n[1][0], local_n[1][1], local_n[1][2], 
+							tangential_direction[0], tangential_direction[1], tangential_direction[2]) );
 				outer_count--;
 			} else if ( outer_count == 1 ) {
 				// Sigma tangential
@@ -89,6 +103,9 @@ void ExternalForceCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* ma
 				gsl_matrix_set(U_gsl, i, 6, local_n[0][1] * local_n[2][1]);
 				gsl_matrix_set(U_gsl, i, 7, local_n[0][2] * local_n[2][1] + local_n[0][1] * local_n[2][2]);
 				gsl_matrix_set(U_gsl, i, 8, local_n[0][2] * local_n[2][2]);
+				gsl_vector_set(om_gsl, i, scale * tangential_stress * qm.scalar_product(
+							local_n[2][0], local_n[2][1], local_n[2][2], 
+							tangential_direction[0], tangential_direction[1], tangential_direction[2]) );
 				outer_count--;
 			}
 		}
