@@ -25,6 +25,13 @@ ExternalVelocityCalculator* ExternalVelocityCalculator::getInstance()
 void ExternalVelocityCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[])
 {
 
+	float local_n[3][3];
+	local_n[0][0] = outer_normal[0];
+	local_n[0][1] = outer_normal[1];
+	local_n[0][2] = outer_normal[2];
+
+	qm.create_local_basis(local_n[0], local_n[1], local_n[2]);
+
 	// Tmp value for GSL solver
 	int s;
 
@@ -59,11 +66,23 @@ void ExternalVelocityCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D*
 				gsl_matrix_set(U_gsl, i, j, 0);
 			// ... except velocity
 			if ( outer_count == 3 ) {
-				gsl_matrix_set(U_gsl, i, 0, 1); outer_count--;
+				// Velocity normal
+				gsl_matrix_set(U_gsl, i, 0, local_n[0][0]);
+				gsl_matrix_set(U_gsl, i, 1, local_n[0][1]);
+				gsl_matrix_set(U_gsl, i, 2, local_n[0][2]);
+				outer_count--;
 			} else if ( outer_count == 2 ) {
-				gsl_matrix_set(U_gsl, i, 1, 1); outer_count--;
+				// Velocity tangential
+				gsl_matrix_set(U_gsl, i, 0, local_n[1][0]);
+				gsl_matrix_set(U_gsl, i, 1, local_n[1][1]);
+				gsl_matrix_set(U_gsl, i, 2, local_n[1][2]);
+				outer_count--;
 			} else if ( outer_count == 1 ) {
-				gsl_matrix_set(U_gsl, i, 2, 1); outer_count--;
+				// Velocity tangential
+				gsl_matrix_set(U_gsl, i, 0, local_n[2][0]);
+				gsl_matrix_set(U_gsl, i, 1, local_n[2][1]);
+				gsl_matrix_set(U_gsl, i, 2, local_n[2][2]);
+				outer_count--;
 			}
 		}
 	}
