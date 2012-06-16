@@ -16,12 +16,6 @@ FixedBorderCalculator::~FixedBorderCalculator()
 	gsl_permutation_free(p_gsl);
 };
 
-FixedBorderCalculator* FixedBorderCalculator::getInstance()
-{
-	static FixedBorderCalculator fbc;
-	return &fbc;
-};
-
 void FixedBorderCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[])
 {
 

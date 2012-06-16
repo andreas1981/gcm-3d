@@ -4,12 +4,6 @@ SimpleVolumeCalculator::SimpleVolumeCalculator() { };
 
 SimpleVolumeCalculator::~SimpleVolumeCalculator() { };
 
-SimpleVolumeCalculator* SimpleVolumeCalculator::getInstance()
-{
-	static SimpleVolumeCalculator svc;
-	return &svc;
-};
-
 void SimpleVolumeCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[])
 {
 	// Here we will store (omega = Matrix_OMEGA * u)

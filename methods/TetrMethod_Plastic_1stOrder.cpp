@@ -13,13 +13,13 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::GCM_Tetr_Plastic_Interpolat
 	random_axis = NULL;
 	random_axis_inv = NULL;
 	basis_quantity = 0;
-	volume_calc = SimpleVolumeCalculator::getInstance();
-	free_border_calc = FreeBorderCalculator::getInstance();
-	fixed_border_calc = FixedBorderCalculator::getInstance();
-	ext_force_calc = ExternalForceCalculator::getInstance();
-	ext_v_calc = ExternalVelocityCalculator::getInstance();
-	ext_val_calc = ExternalValuesCalculator::getInstance();
-	adhesion_contact_calc = AdhesionContactCalculator::getInstance();
+	volume_calc = new SimpleVolumeCalculator();
+	free_border_calc = new FreeBorderCalculator();
+	fixed_border_calc = new FixedBorderCalculator();
+	ext_force_calc = new ExternalForceCalculator();
+	ext_v_calc = new ExternalVelocityCalculator();
+	ext_val_calc = new ExternalValuesCalculator();
+	adhesion_contact_calc = new AdhesionContactCalculator();
 };
 
 GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::~GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis()

@@ -1,23 +1,17 @@
 #ifndef _GCM_EXTERNAL_VALUES_CALCULATOR_H
 #define _GCM_EXTERNAL_VALUES_CALCULATOR_H  1
 
+#include "../BorderCalculator.h"
 #include <gsl/gsl_linalg.h>
-#include <vector>
-using std::vector;
 
-#include "../../datatypes/ElasticNode.h"
-#include "../../datatypes/ElasticMatrix3D.h"
-#include "../../datatypes/Basis.h"
-
-class ExternalValuesCalculator
+class ExternalValuesCalculator : public BorderCalculator
 {
 public:
-	static ExternalValuesCalculator* getInstance();
+	ExternalValuesCalculator();
+	~ExternalValuesCalculator();
 	void do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[]);
 
 protected:
-	ExternalValuesCalculator();
-	~ExternalValuesCalculator();
 
 private:
 	// Used for border calculation

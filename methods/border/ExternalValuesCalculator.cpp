@@ -23,12 +23,6 @@ ExternalValuesCalculator::~ExternalValuesCalculator()
 	gsl_permutation_free(p_gsl);
 };
 
-ExternalValuesCalculator* ExternalValuesCalculator::getInstance()
-{
-	static ExternalValuesCalculator evc;
-	return &evc;
-};
-
 void ExternalValuesCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[])
 {
 

@@ -16,12 +16,6 @@ ExternalForceCalculator::~ExternalForceCalculator()
 	gsl_permutation_free(p_gsl);
 };
 
-ExternalForceCalculator* ExternalForceCalculator::getInstance()
-{
-	static ExternalForceCalculator efc;
-	return &efc;
-};
-
 void ExternalForceCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[])
 {
 

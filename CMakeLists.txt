@@ -32,12 +32,15 @@ set ( SOURCES
 	./methods/TetrNumericalMethod.cpp
 	./methods/TetrMethod_Plastic_1stOrder.cpp
 	./methods/NumericalMethod.cpp
+	./methods/VolumeCalculator.cpp
 	./methods/volume/SimpleVolumeCalculator.cpp
+	./methods/BorderCalculator.cpp
 	./methods/border/FreeBorderCalculator.cpp
 	./methods/border/FixedBorderCalculator.cpp
 	./methods/border/ExternalForceCalculator.cpp
 	./methods/border/ExternalVelocityCalculator.cpp
 	./methods/border/ExternalValuesCalculator.cpp
+	./methods/ContactCalculator.cpp
 	./methods/contact/AdhesionContactCalculator.cpp
 	./system/GCMStresser.cpp
 	./system/GCMException.cpp

@@ -16,12 +16,6 @@ FreeBorderCalculator::~FreeBorderCalculator()
 	gsl_permutation_free(p_gsl);
 };
 
-FreeBorderCalculator* FreeBorderCalculator::getInstance()
-{
-	static FreeBorderCalculator fbc;
-	return &fbc;
-};
-
 void FreeBorderCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[])
 {
 

@@ -1,23 +1,17 @@
 #ifndef _GCM_CONTACT_ADHESION_CALCULATOR_H
 #define _GCM_CONTACT_ADHESION_CALCULATOR_H  1
 
+#include "../ContactCalculator.h"
 #include <gsl/gsl_linalg.h>
-#include <vector>
-using std::vector;
 
-#include "../../datatypes/ElasticNode.h"
-#include "../../datatypes/ElasticMatrix3D.h"
-#include "../../datatypes/Basis.h"
-
-class AdhesionContactCalculator
+class AdhesionContactCalculator : public ContactCalculator
 {
 public:
-	static AdhesionContactCalculator* getInstance();
+	AdhesionContactCalculator();
+	~AdhesionContactCalculator();
 	void do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], ElasticMatrix3D* virt_matrix, float* virt_values[], bool virt_inner[], float outer_normal[]);
 
 protected:
-	AdhesionContactCalculator();
-	~AdhesionContactCalculator();
 
 private:
 	// Used for border calculation

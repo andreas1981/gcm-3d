@@ -16,12 +16,6 @@ ExternalVelocityCalculator::~ExternalVelocityCalculator()
 	gsl_permutation_free(p_gsl);
 };
 
-ExternalVelocityCalculator* ExternalVelocityCalculator::getInstance()
-{
-	static ExternalVelocityCalculator fbc;
-	return &fbc;
-};
-
 void ExternalVelocityCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[])
 {
 
