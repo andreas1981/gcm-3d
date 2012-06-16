@@ -12,7 +12,7 @@ class BorderCalculator
 public:
 	BorderCalculator();
 	~BorderCalculator();
-	virtual void do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[]) = 0;
+	virtual void do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[], float scale) = 0;
 
 protected:
 

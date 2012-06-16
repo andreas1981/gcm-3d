@@ -9,7 +9,7 @@ class ExternalValuesCalculator : public BorderCalculator
 public:
 	ExternalValuesCalculator();
 	~ExternalValuesCalculator();
-	void do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[]);
+	void do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[], float scale);
 
 protected:
 

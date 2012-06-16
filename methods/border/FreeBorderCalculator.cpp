@@ -16,7 +16,7 @@ FreeBorderCalculator::~FreeBorderCalculator()
 	gsl_permutation_free(p_gsl);
 };
 
-void FreeBorderCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[])
+void FreeBorderCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[], float scale)
 {
 
 	// Tmp value for GSL solver

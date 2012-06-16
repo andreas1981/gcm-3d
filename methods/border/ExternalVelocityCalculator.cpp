@@ -16,7 +16,7 @@ ExternalVelocityCalculator::~ExternalVelocityCalculator()
 	gsl_permutation_free(p_gsl);
 };
 
-void ExternalVelocityCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[])
+void ExternalVelocityCalculator::do_calc(ElasticNode* new_node, ElasticMatrix3D* matrix, float* values[], bool inner[], float outer_normal[], float scale)
 {
 
 	float local_n[3][3];
