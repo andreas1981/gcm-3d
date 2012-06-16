@@ -305,6 +305,9 @@ void ElasticMatrix3D::CreateGeneralizedMatrix(float la, float mu, float ro, floa
 		n[1][1] = n[0][0];
 		n[1][2] = 0;
 	}*/
+
+	// TODO - replace it with create_local_basis from quick_math
+
 	if(fabs(n[0][0]) <= fabs(n[0][1])) {
 		if(fabs(n[0][0]) <= fabs(n[0][2])) {
 			n[1][0] = 0;

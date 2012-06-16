@@ -76,3 +76,31 @@ float quick_math::solid_angle(float x1, float y1, float z1, float x2, float y2, 
 
 	return 2 * at;
 };
+
+// Create local basis based on the first vector - used to create the basis having normal only
+void quick_math::create_local_basis(float n[], float n1[], float n2[])
+{
+	if(fabs(n[0]) <= fabs(n[1])) {
+		if(fabs(n[0]) <= fabs(n[2])) {
+			n1[0] = 0;
+			n1[1] = -n[2];
+			n1[2] = n[1];
+		} else {
+			n1[0] = -n[1];
+			n1[1] = n[0];
+			n1[2] = 0;
+		}
+	} else {
+		if(fabs(n[1]) <= fabs(n[2])) {
+			n1[0] = -n[2];
+			n1[1] = 0;
+			n1[2] = n[0];
+		} else {
+			n1[0] = -n[1];
+			n1[1] = n[0];
+			n1[2] = 0;
+		}
+	}
+
+	vector_product(n[0], n[1], n[2], n1[0], n1[1], n1[2], &n2[0], &n2[1], &n2[2]);
+};
