@@ -18,6 +18,7 @@ using std::set;
 #include "./border/FreeBorderCalculator.h"
 #include "./border/FixedBorderCalculator.h"
 #include "./border/ExternalForceCalculator.h"
+#include "./border/ExternalVelocityCalculator.h"
 #include "./contact/AdhesionContactCalculator.h"
 
 class GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis : public TetrNumericalMethod
@@ -39,6 +40,7 @@ protected:
 	FreeBorderCalculator* free_border_calc;
 	FixedBorderCalculator* fixed_border_calc;
 	ExternalForceCalculator* ext_force_calc;
+	ExternalVelocityCalculator* ext_v_calc;
 	AdhesionContactCalculator* adhesion_contact_calc;
 
 	int prepare_node(ElasticNode* cur_node, ElasticMatrix3D* matrixes[], float time_step, int stage, TetrMesh* mesh, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num);
