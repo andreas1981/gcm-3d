@@ -102,5 +102,10 @@ void quick_math::create_local_basis(float n[], float n1[], float n2[])
 		}
 	}
 
+	float dtmp = sqrt(n1[0]*n1[0] + n1[1]*n1[1] + n1[2]*n1[2]);
+	n1[0] /= dtmp;
+	n1[1] /= dtmp;
+	n1[2] /= dtmp;
+
 	vector_product(n[0], n[1], n[2], n1[0], n1[1], n1[2], &n2[0], &n2[1], &n2[2]);
 };
