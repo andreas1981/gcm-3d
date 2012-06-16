@@ -611,6 +611,9 @@ int TetrMesh_1stOrder::load_msh_file(char* file_name)
 		new_node.local_basis = NULL;
 		new_node.border_type = INNER;
 		new_node.contact_type = FREE;
+		new_node.volume_calculator = NULL;
+		new_node.border_condition = NULL;
+		new_node.contact_condition = NULL;
 
 		infile >> new_node.local_num;
 		if(new_node.local_num > 0)
@@ -1428,20 +1431,22 @@ int TetrMesh_1stOrder::proceed_rheology()
 	return 0;
 };
 
-int TetrMesh_1stOrder::set_stress(float tau)
+void TetrMesh_1stOrder::check_stresses(float tau)
 {
-	if(stresser == NULL)
-		throw GCMException( GCMException::MESH_EXCEPTION, "No stresser attached");
-
-	// TODO if stress has ended at all we can skip this step
 	for(int i = 0; i < nodes.size(); i++)
 	{
 		if(nodes[i].placement_type == LOCAL)
 		{
-			stresser->set_current_stress(&nodes[i], &nodes[i], tau);
+// FIXME
+stresser->set_current_stress(&nodes[i], &nodes[i], tau);
+			if( nodes[i].volume_calculator == NULL )
+				nodes[i].volume_calculator = mesh_set->getDefaultVolumeCalculator();
+			if( (nodes[i].border_condition == NULL) || ( ! nodes[i].border_condition->form->isActive(tau) ) )
+				nodes[i].border_condition = mesh_set->getDefaultBorderCondition();
+			if( (nodes[i].contact_condition == NULL) || ( ! nodes[i].contact_condition->form->isActive(tau) ) )
+				nodes[i].contact_condition = mesh_set->getDefaultContactCondition();
 		}
 	}
-	return 0;
 };
 
 int TetrMesh_1stOrder::run_mesh_filter()

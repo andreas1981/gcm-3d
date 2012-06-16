@@ -7,9 +7,26 @@ TetrMeshSet::TetrMeshSet()
 	rheology = NULL;
 	numerical_method = NULL;
 	collision_detector = NULL;
+
+	default_pulse_form = new StepPulseForm(-1, -1);
+	default_border_calc = new FreeBorderCalculator();
+	default_contact_calc = new AdhesionContactCalculator();
+
+	default_vol_calc = new SimpleVolumeCalculator();
+	default_border_cond = new BorderCondition();
+	default_border_cond->form = default_pulse_form;
+	default_border_cond->calc = default_border_calc;
+	default_contact_cond = new ContactCondition();
+	default_contact_cond->form = default_pulse_form;
+	default_contact_cond->calc = default_contact_calc;
 };
 
-TetrMeshSet::~TetrMeshSet() { };
+TetrMeshSet::~TetrMeshSet()
+{
+	delete(default_vol_calc);
+	delete(default_border_cond);
+	delete(default_contact_cond);
+};
 
 void TetrMeshSet::attach(TetrMesh_1stOrder* new_mesh)
 {
@@ -119,10 +136,9 @@ int TetrMeshSet::do_next_step()
 			throw GCMException( GCMException::MESH_EXCEPTION, "Incorrect number of stages");
 	}
 
-	// set external stress
+	// check external stresses - if smth has ended and we should switch conditions
 	for(int i = 0; i < local_meshes.size(); i++)
-		if( local_meshes[i]->set_stress( get_current_time() ) < 0 )
-			throw GCMException( GCMException::MESH_EXCEPTION, "Set stress failed");
+		local_meshes[i]->check_stresses( get_current_time() );
 
 	// do part steps
 	for(int s = 0; s < number_of_stages; s++)
@@ -359,4 +375,19 @@ TetrMeshSet* TetrMeshSet::getInstance()
 void TetrMeshSet::init()
 {
 	data_bus = DataBus::getInstance();
+}
+
+VolumeCalculator* TetrMeshSet::getDefaultVolumeCalculator()
+{
+	return default_vol_calc;
+}
+
+BorderCondition* TetrMeshSet::getDefaultBorderCondition()
+{
+	return default_border_cond;
+}
+
+ContactCondition* TetrMeshSet::getDefaultContactCondition()
+{
+	return default_contact_cond;
 }

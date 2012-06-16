@@ -13,6 +13,14 @@ using std::string;
 #include "DataBus.h"
 #include "Stresser.h"
 #include "CollisionDetector.h"
+#include "BorderCondition.h"
+#include "ContactCondition.h"
+#include "../methods/VolumeCalculator.h"
+
+#include "../methods/volume/SimpleVolumeCalculator.h"
+#include "../methods/border/FreeBorderCalculator.h"
+#include "../methods/contact/AdhesionContactCalculator.h"
+#include "../system/forms/StepPulseForm.h"
 
 class TetrMeshSet: LoggerUser
 {
@@ -44,6 +52,11 @@ public:
 	
 	void init_mesh_container(vector<int> &zones_info);	
 	void sync_remote_data();
+
+	VolumeCalculator* getDefaultVolumeCalculator();
+	BorderCondition* getDefaultBorderCondition();
+	ContactCondition* getDefaultContactCondition();
+
 protected:
 	TetrMeshSet();
 	~TetrMeshSet();
@@ -55,6 +68,14 @@ protected:
 	TetrMesh_1stOrder* meshes;
 	vector<TetrMesh_1stOrder*> local_meshes;
 	vector<TetrMesh_1stOrder*> remote_meshes;
+
+	VolumeCalculator* default_vol_calc;
+	BorderCondition* default_border_cond;
+	ContactCondition* default_contact_cond;
+	PulseForm* default_pulse_form;
+	BorderCalculator* default_border_calc;
+	ContactCalculator* default_contact_calc;
+
 public:
 	// FIXME
 	// it's public for a while :)
