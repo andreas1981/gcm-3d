@@ -10,7 +10,7 @@ class PulseForm
 public:
 	PulseForm(float _startTime, float _duration);
 	~PulseForm();
-	virtual float calcMagnitude( float amplitude, float time, float coords[], Area* area ) = 0;
+	virtual float calcMagnitudeNorm( float time, float coords[], Area* area ) = 0;
 	bool isActive(float time);
 private:
 	float startTime;
