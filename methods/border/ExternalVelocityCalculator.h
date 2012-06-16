@@ -9,6 +9,8 @@ using std::vector;
 #include "../../datatypes/ElasticMatrix3D.h"
 #include "../../datatypes/Basis.h"
 
+#include "../../system/quick_math.h"
+
 class ExternalVelocityCalculator
 {
 public:
@@ -25,6 +27,8 @@ private:
 	gsl_vector *om_gsl;
 	gsl_vector *x_gsl;
 	gsl_permutation *p_gsl;
+
+	quick_math qm;
 };
 
 #endif
