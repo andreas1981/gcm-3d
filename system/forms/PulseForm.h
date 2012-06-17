@@ -12,7 +12,7 @@ public:
 	~PulseForm();
 	virtual float calcMagnitudeNorm( float time, float coords[], Area* area ) = 0;
 	bool isActive(float time);
-private:
+protected:
 	float startTime;
 	float duration;
 };
