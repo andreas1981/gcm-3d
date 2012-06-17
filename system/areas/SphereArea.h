@@ -8,7 +8,7 @@ class SphereArea : public Area
 public:
 	SphereArea( float _radius, float x, float y, float z );
 	~SphereArea();
-	bool isInArea( ElasticNode* cur_node ) = 0;
+	bool isInArea( ElasticNode* cur_node );
 private:
 	float radius;
 	float center[3];

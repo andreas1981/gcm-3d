@@ -8,7 +8,7 @@ class CylinderArea : public Area
 public:
 	CylinderArea( float _radius, float _bX, float _bY, float _bZ, float _eX, float _eY, float _eZ );
 	~CylinderArea();
-	bool isInArea( ElasticNode* cur_node ) = 0;
+	bool isInArea( ElasticNode* cur_node );
 private:
 	float radius;
 	float begin[3];
