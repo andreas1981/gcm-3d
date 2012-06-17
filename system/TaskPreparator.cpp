@@ -43,6 +43,15 @@ void TaskPreparator::set_fixed_elastic_rheology(vector<ElasticNode>* nodes, Mesh
 	}
 };
 
+void TaskPreparator::set_border_condition(vector<ElasticNode>* nodes, BorderCondition* bc)
+{
+	if(nodes == NULL)
+		return;
+	for(int i = 0; i < nodes->size(); i++)
+		if( bc->area->isInArea( &nodes->at(i) ) )
+			(nodes->at(i)).border_condition = bc;
+};
+
 void TaskPreparator::check_rheology_loaded(vector<ElasticNode>* nodes)
 {
 	if(nodes == NULL)
@@ -318,6 +327,62 @@ int TaskPreparator::load_task( string task_file, string zones_file, string data_
 					set_fixed_elastic_rheology( &( ( mesh_set->get_local_mesh(i) )->nodes ), &outline, la, mu, rho, yield );
 		}
 		erheo = erheo->NextSiblingElement( "rheology" );
+	}
+
+	// Read rheology
+	TiXmlElement* eborder = etask->FirstChildElement( "border" );
+	while( eborder )
+	{
+		BorderCondition* border_cond = new BorderCondition();
+
+		TiXmlElement* eborder_calculator = eborder->FirstChildElement( "calculator" );
+		if( !eborder_calculator )
+			throw GCMException(GCMException::CONFIG_EXCEPTION, "Malformed task file");
+
+		string calc_type = eborder_calculator->Attribute( "type" );
+		if( calc_type == "ExternalForceCalculator" )
+		{
+			float sn = atof( eborder_calculator->Attribute( "normal_stress" ) );
+			float st = atof( eborder_calculator->Attribute( "tangential_stress" ) );
+			float x = atof( eborder_calculator->Attribute( "x" ) );
+			float y = atof( eborder_calculator->Attribute( "y" ) );
+			float z = atof( eborder_calculator->Attribute( "z" ) );
+			border_cond->calc = new ExternalForceCalculator();
+			((ExternalForceCalculator*)border_cond->calc)->set_parameters(sn, st, x, y, z);
+		}
+
+		TiXmlElement* eborder_stress = eborder->FirstChildElement( "stress" );
+		if( !eborder_stress )
+			throw GCMException(GCMException::CONFIG_EXCEPTION, "Malformed task file");
+
+		string stress_form = eborder_stress->Attribute( "form" );
+		if( stress_form == "step" )
+		{
+			float start = atof( eborder_stress->Attribute( "startTime" ) );
+			float duration = atof( eborder_stress->Attribute( "duration" ) );
+			border_cond->form = new StepPulseForm(start, duration);
+		}
+
+		TiXmlElement* eborder_area = eborder->FirstChildElement( "area" );
+		if( !eborder_area )
+			throw GCMException(GCMException::CONFIG_EXCEPTION, "Malformed task file");
+
+		string area_type = eborder_area->Attribute( "type" );
+		if( area_type == "box" )
+		{
+			float minX = atof( eborder_area->Attribute( "minX" ) );
+			float maxX = atof( eborder_area->Attribute( "maxX" ) );
+			float minY = atof( eborder_area->Attribute( "minY" ) );
+			float maxY = atof( eborder_area->Attribute( "maxY" ) );
+			float minZ = atof( eborder_area->Attribute( "minZ" ) );
+			float maxZ = atof( eborder_area->Attribute( "maxZ" ) );
+
+			border_cond->area = new BoxArea(minX, maxX, minY, maxY, minZ, maxZ);
+
+			for(int i = 0; i < mesh_set->get_number_of_local_meshes(); i++)
+				set_border_condition( &( ( mesh_set->get_local_mesh(i) )->nodes ), border_cond );
+		}
+		eborder = eborder->NextSiblingElement( "border" );
 	}
 
 	for(int i = 0; i < mesh_set->get_number_of_local_meshes(); i++)

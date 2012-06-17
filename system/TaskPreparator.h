@@ -26,6 +26,10 @@ using std::vector;
 #include "GCMStresser.h"
 #include "GCMException.h"
 #include "DataBus.h"
+#include "BorderCondition.h"
+#include "./forms/StepPulseForm.h"
+#include "./areas/BoxArea.h"
+#include "../methods/border/ExternalForceCalculator.h"
 
 class TaskPreparator: protected LoggerUser
 {
@@ -35,6 +39,7 @@ public:
 	string* get_task_preparator_type();
 	void set_fixed_elastic_rheology(vector<ElasticNode>* nodes, float la, float mu, float rho, float yield_limit);
 	void set_fixed_elastic_rheology(vector<ElasticNode>* nodes, MeshOutline* box, float la, float mu, float rho, float yield_limit);
+	void set_border_condition(vector<ElasticNode>* nodes, BorderCondition* bc);
 	void check_rheology_loaded(vector<ElasticNode>* nodes);
 	
 	int load_task( string task_file, string zones_file, string data_dir, 
