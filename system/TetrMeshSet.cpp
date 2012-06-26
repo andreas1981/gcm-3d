@@ -163,9 +163,8 @@ int TetrMeshSet::do_next_step()
 		}
 	}
 
-// FIXME
-//	for(int i = 0; i < local_meshes.size(); i++)
-//		local_meshes[i]->move_coords(time_step);
+	for(int i = 0; i < local_meshes.size(); i++)
+		local_meshes[i]->move_coords(time_step);
 
 	for(int i = 0; i < local_meshes.size(); i++)
 		if( local_meshes[i]->proceed_rheology() < 0 )
