@@ -1022,14 +1022,105 @@ bool TetrMesh_1stOrder::point_in_tetr(int base_node_index, float dx, float dy, f
 	return point_in_tetr(base_node_index, dx, dy, dz, tetr, false);
 };
 
-bool TetrMesh_1stOrder::point_in_tetr(int base_node_index, float dx, float dy, float dz, Tetrahedron* tetr, bool debug)
+bool TetrMesh_1stOrder::point_in_tetr(int base_node_index, float _dx, float _dy, float _dz, Tetrahedron* tetr, bool debug)
 {
+	// TODO FIXME - we use this to workaround very small displacements that fail due to floating point rounding errors
+	float min_h = tetr_h(tetr->local_num);
+	float delta = sqrt(_dx*_dx + _dy*_dy + _dz*_dz);
+
+	float dx, dy, dz;
+
+	if( (delta > 0) && (delta < min_h * 0.99) ) {
+		dx = _dx * min_h * 0.99 / delta;
+		dy = _dy * min_h * 0.99 / delta;
+		dz = _dz * min_h * 0.99 / delta;
+	} else {
+		dx = _dx;
+		dy = _dy;
+		dz = _dz;
+	}
+
+
+	float Vol = fabs( qm_engine.tetr_volume(
+		(nodes[tetr->vert[1]].coords[0])-(nodes[tetr->vert[0]].coords[0]),
+		(nodes[tetr->vert[1]].coords[1])-(nodes[tetr->vert[0]].coords[1]),
+		(nodes[tetr->vert[1]].coords[2])-(nodes[tetr->vert[0]].coords[2]),
+		(nodes[tetr->vert[2]].coords[0])-(nodes[tetr->vert[0]].coords[0]),
+		(nodes[tetr->vert[2]].coords[1])-(nodes[tetr->vert[0]].coords[1]),
+		(nodes[tetr->vert[2]].coords[2])-(nodes[tetr->vert[0]].coords[2]),
+		(nodes[tetr->vert[3]].coords[0])-(nodes[tetr->vert[0]].coords[0]),
+		(nodes[tetr->vert[3]].coords[1])-(nodes[tetr->vert[0]].coords[1]),
+		(nodes[tetr->vert[3]].coords[2])-(nodes[tetr->vert[0]].coords[2])
+	) );
+
+	float x = nodes[base_node_index].coords[0] + dx;
+        float y = nodes[base_node_index].coords[1] + dy;
+        float z = nodes[base_node_index].coords[2] + dz;
+
+	float vols[4];
+
+	vols[0] = fabs( qm_engine.tetr_volume(
+		(nodes[tetr->vert[1]].coords[0])-x,
+		(nodes[tetr->vert[1]].coords[1])-y,
+		(nodes[tetr->vert[1]].coords[2])-z,
+		(nodes[tetr->vert[2]].coords[0])-x,
+		(nodes[tetr->vert[2]].coords[1])-y,
+		(nodes[tetr->vert[2]].coords[2])-z,
+		(nodes[tetr->vert[3]].coords[0])-x,
+		(nodes[tetr->vert[3]].coords[1])-y,
+		(nodes[tetr->vert[3]].coords[2])-z
+	) );
+
+	vols[1] = fabs( qm_engine.tetr_volume(
+		(nodes[tetr->vert[0]].coords[0])-x,
+		(nodes[tetr->vert[0]].coords[1])-y,
+		(nodes[tetr->vert[0]].coords[2])-z,
+		(nodes[tetr->vert[2]].coords[0])-x,
+		(nodes[tetr->vert[2]].coords[1])-y,
+		(nodes[tetr->vert[2]].coords[2])-z,
+		(nodes[tetr->vert[3]].coords[0])-x,
+		(nodes[tetr->vert[3]].coords[1])-y,
+		(nodes[tetr->vert[3]].coords[2])-z
+	) );
+
+	vols[2] = fabs( qm_engine.tetr_volume(
+		(nodes[tetr->vert[1]].coords[0])-x,
+		(nodes[tetr->vert[1]].coords[1])-y,
+		(nodes[tetr->vert[1]].coords[2])-z,
+		(nodes[tetr->vert[0]].coords[0])-x,
+		(nodes[tetr->vert[0]].coords[1])-y,
+		(nodes[tetr->vert[0]].coords[2])-z,
+		(nodes[tetr->vert[3]].coords[0])-x,
+		(nodes[tetr->vert[3]].coords[1])-y,
+		(nodes[tetr->vert[3]].coords[2])-z
+	) );
+
+	vols[3] = fabs( qm_engine.tetr_volume(
+		(nodes[tetr->vert[1]].coords[0])-x,
+		(nodes[tetr->vert[1]].coords[1])-y,
+		(nodes[tetr->vert[1]].coords[2])-z,
+		(nodes[tetr->vert[2]].coords[0])-x,
+		(nodes[tetr->vert[2]].coords[1])-y,
+		(nodes[tetr->vert[2]].coords[2])-z,
+		(nodes[tetr->vert[0]].coords[0])-x,
+		(nodes[tetr->vert[0]].coords[1])-y,
+		(nodes[tetr->vert[0]].coords[2])-z
+	) );
+
+	if( vols[0] + vols[1] + vols[2] + vols[3] < Vol * 1.00001 )
+		return true;
+	else
+		return false;
+
+
 	float d1,d2;
 
 	// FIXME
 	// switch to #ifdef instead of if (debug)?
 	if(debug) {
+		*logger << "MinH = " << min_h << " Delta = " < delta;
 		*logger < "DEBUG: TetrMesh_1stOrder::point_in_tetr";
+		*logger <<"Point: num: " << base_node_index << " _dx: " << _dx << " _dy: " << _dy << " _dz: " < _dz;
 		*logger <<"Point: num: " << base_node_index << " dx: " << dx << " dy: " << dy << " dz: " < dz;
 		*logger << "Tetr: " < tetr->local_num;
 		for(int j = 0; j < 4; j++) {
