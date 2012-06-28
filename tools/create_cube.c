@@ -133,15 +133,15 @@ int write_tetrs(FILE* file, int num, int i, int j, int k, int N, int M) // i,j,k
 
 	fprintf(file, "%d 4 3 0 1 0 %d %d %d %d\n", num+3,
 		get_absolute_num(i, j, k, N, M), get_absolute_num(i+1, j, k, N, M),
-		get_absolute_num(i+1, j+1, k, N, M), get_absolute_num(i+1, j, k+1, N, M) );
+		get_absolute_num(i+1, j+1, k, N, M), get_absolute_num(i+1, j+1, k+1, N, M) );
 
 	fprintf(file, "%d 4 3 0 1 0 %d %d %d %d\n", num+4,
-		get_absolute_num(i, j, k+1, N, M), get_absolute_num(i+1, j, k+1, N, M),
+		get_absolute_num(i, j, k+1, N, M), get_absolute_num(i+1, j, k, N, M),
 		get_absolute_num(i+1, j+1, k+1, N, M), get_absolute_num(i, j, k, N, M) );
 
 	fprintf(file, "%d 4 3 0 1 0 %d %d %d %d\n", num+5,
 		get_absolute_num(i+1, j, k+1, N, M), get_absolute_num(i+1, j+1, k+1, N, M),
-		get_absolute_num(i, j, k, N, M), get_absolute_num(i+1, j+1, k, N, M) );
+		get_absolute_num(i, j, k+1, N, M), get_absolute_num(i+1, j, k, N, M) );
 
 	return 0;
 }

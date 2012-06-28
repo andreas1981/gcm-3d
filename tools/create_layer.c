@@ -102,15 +102,15 @@ int write_tetrs(FILE* file, int num, int i, int j, int k) // i,j,k - 'local' i,j
 
 	fprintf(file, "%d 4 3 0 1 0 %d %d %d %d\n", num+3,
 		get_absolute_num(i, j, k), get_absolute_num(i+1, j, k),
-		get_absolute_num(i+1, j+1, k), get_absolute_num(i+1, j, k+1) );
+		get_absolute_num(i+1, j+1, k), get_absolute_num(i+1, j+1, k+1) );
 
 	fprintf(file, "%d 4 3 0 1 0 %d %d %d %d\n", num+4,
-		get_absolute_num(i, j, k+1), get_absolute_num(i+1, j, k+1),
+		get_absolute_num(i, j, k+1), get_absolute_num(i+1, j, k),
 		get_absolute_num(i+1, j+1, k+1), get_absolute_num(i, j, k) );
 
 	fprintf(file, "%d 4 3 0 1 0 %d %d %d %d\n", num+5,
 		get_absolute_num(i+1, j, k+1), get_absolute_num(i+1, j+1, k+1),
-		get_absolute_num(i, j, k), get_absolute_num(i+1, j+1, k) );
+		get_absolute_num(i, j, k+1), get_absolute_num(i+1, j, k) );
 
 	return 0;
 }
