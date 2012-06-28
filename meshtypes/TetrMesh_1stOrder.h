@@ -70,6 +70,7 @@ public:
 	void move_coords(float tau);
 	int proceed_rheology();
 	void clear_data();
+	void clear_contact_state();
 
 private:
 	int check_triangle_to_be_border(int v1, int v2, int v3, int tetr_vert, float step_h);

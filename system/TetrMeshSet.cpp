@@ -111,6 +111,9 @@ int TetrMeshSet::do_next_step()
 	{
 		// Clear virtual nodes because they change between time steps
 		virt_nodes.clear();
+		// Clear contact state for local meshes because it is invalid now
+		for (int l = 0; l < local_meshes.size(); l++)
+			local_meshes[l]->clear_contact_state();
 		// Find collisions and fill virtual nodes
 		collision_detector->find_collisions(virt_nodes);
 	}
@@ -213,7 +216,7 @@ void TetrMeshSet::sync_remote_data()
 			if( meshes[i].nodes[k].absolute_num > max_node_num )
 				max_node_num = meshes[i].nodes[k].absolute_num;
 
-		*logger << "Mesh #" << i << " Max absolute num: " < max_node_num;
+		*logger << "Mesh #" << zone_num << " Max absolute num: " < max_node_num;
 
 		if(max_node_num >= 0) {
 			renum[zone_num] = new int[max_node_num + 1];

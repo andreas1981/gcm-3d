@@ -37,6 +37,13 @@ void TetrMesh_1stOrder::clear_data()
 	border.clear();
 };
 
+void TetrMesh_1stOrder::clear_contact_state()
+{
+	for(int i = 0; i < nodes.size(); i++)
+		if(nodes[i].contact_data != NULL)
+			nodes[i].contact_data->axis_plus[0] = -1;
+};
+
 //TODO - ugly hack - think about if we need it and how to implement it
 void TetrMesh_1stOrder::add_node(ElasticNode* node)
 {

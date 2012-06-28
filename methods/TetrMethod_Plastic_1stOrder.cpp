@@ -334,7 +334,7 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 			// TODO - merge this condition with the next ones
 			if( virt_outer_count != 3 ) {
 					*logger << "There are " << virt_outer_count < " 'outer' characteristics.";
-					*logger << "REAL NODE " << cur_node->local_num << ": " 
+					*logger << "MESH " << mesh->local_num << " REAL NODE " << cur_node->local_num << ": " 
 								<< "x: " << cur_node->coords[0] 
 								<< " y: " << cur_node->coords[1] 
 								<< " z: " < cur_node->coords[2];
