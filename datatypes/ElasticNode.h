@@ -43,6 +43,23 @@ public:
 			float yield_limit;
 		};
 	};
+
+	union
+	{
+		float destruction_criterias[8];
+		struct
+		{
+			float max_compression;
+			float max_tension;
+			float max_shear;
+			float max_deviator;
+			float max_compression_history;
+			float max_tension_history;
+			float max_shear_history;
+			float max_deviator_history;
+		};
+	};
+
 	vector<int>* elements;
 	vector<int>* border_elements;
 	TetrMesh_1stOrder* mesh;

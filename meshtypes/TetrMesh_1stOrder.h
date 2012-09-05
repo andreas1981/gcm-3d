@@ -35,6 +35,9 @@ public:
 
 	Tetrahedron_1st_order* find_owner_tetr(ElasticNode* node, float dx, float dy, float dz);
 	Tetrahedron_1st_order* find_owner_tetr(ElasticNode* node, float dx, float dy, float dz, bool debug);
+
+	Tetrahedron_1st_order* find_border_cross(ElasticNode* node, float dx, float dy, float dz, float* cross);
+
 	int interpolate(ElasticNode* node, Tetrahedron* tetr);
 	// checks if vector from p0 in direction v with lenght l intersects triangle p1-p2-p3
 	// if yes - point of intersection will be returned in p
@@ -59,6 +62,7 @@ public:
 	vector<Triangle> border;
 
 	int find_border_node_normal(int border_node_index, float* x, float* y, float* z);
+	int find_border_node_normal(int border_node_index, float* x, float* y, float* z, float h);
 
 	void check_stresses(float tau);
 
@@ -69,6 +73,7 @@ public:
 	int do_next_part_step(float tau, int stage);
 	void move_coords(float tau);
 	int proceed_rheology();
+	void calc_destruction_criterias();
 	void clear_data();
 	void clear_contact_state();
 
@@ -87,6 +92,9 @@ private:
 
 	float tetr_h(int i);
 	int run_mesh_filter();
+
+	void calc_min_h();
+	float mesh_min_h;
 
 	vector<ElasticNode> new_nodes;
 

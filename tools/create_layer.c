@@ -1,8 +1,11 @@
 #include <stdio.h>
 
 // Number of points in layer sample
-#ifndef Size
-#define Size 201
+#ifndef Size1
+#define Size1 201
+#endif
+#ifndef Size2
+#define Size2 201
 #endif
 // Number of layers in zone
 #ifndef Width
@@ -28,26 +31,26 @@ int main()
 
 	file = fopen(file_name,"w");
 
-	fprintf(file, "$MeshFormat\n2 0 8\n$EndMeshFormat\n$Nodes\n%d\n", Size*Size*Width);
+	fprintf(file, "$MeshFormat\n2 0 8\n$EndMeshFormat\n$Nodes\n%d\n", Size1*Size2*Width);
 
 	int cur_num;
 
 	for(int k = 0; k < Width; k++)
-		for(int j = 0; j < Size; j++)
-			for(int i = 0; i < Size; i++)
+		for(int j = 0; j < Size2; j++)
+			for(int i = 0; i < Size1; i++)
 			{
 				cur_num = get_num_in_zone(i, j, k);
 				if( cur_num >= 0 )
 					fprintf(file, "%d %d %d %d\n", cur_num, i , j, k);
 			}
 
-	fprintf(file, "$EndNodes\n$Elements\n%d\n", (Size-1)*(Size-1)*(Width-1)*6);
+	fprintf(file, "$EndNodes\n$Elements\n%d\n", (Size1-1)*(Size2-1)*(Width-1)*6);
 
 	int tetr_num = 1;
 
 	for(int k = 0; k < Width-1; k++)
-		for(int j = 0; j < Size-1; j++)
-			for(int i = 0; i < Size-1; i++)
+		for(int j = 0; j < Size2-1; j++)
+			for(int i = 0; i < Size1-1; i++)
 			{
 				write_tetrs(file, tetr_num, i, j, k);
 				tetr_num += 6;
@@ -55,7 +58,7 @@ int main()
 
 	fprintf(file, "$EndElements\n");
 
-	fprintf(file, "$NodeData\n1\n\"Mesh partitions indexes\"\n1\n0.0\n3\n0\n1\n%d\n", Size*Size*Width);
+/*	fprintf(file, "$NodeData\n1\n\"Mesh partitions indexes\"\n1\n0.0\n3\n0\n1\n%d\n", Size*Size*Width);
 
 	int nodes_per_zone_edge;
 	if(Size % ZonesPerEdge == 0)
@@ -74,7 +77,7 @@ int main()
 				fprintf(file, "%d %d\n", cur_num, zone_num);
 			}
 	
-	fprintf(file, "$EndNodeData\n");
+	fprintf(file, "$EndNodeData\n");*/
 
 	fclose(file);
 
@@ -83,7 +86,7 @@ int main()
 
 int get_num_in_zone(int i, int j, int k)
 {
-	return ( k * (Size) * (Size) + j * (Size) + i ) /* Just to start numbers from 1*/ + 1;
+	return ( k * (Size1) * (Size2) + j * (Size1) + i ) /* Just to start numbers from 1*/ + 1;
 }
 
 int write_tetrs(FILE* file, int num, int i, int j, int k) // i,j,k - 'local' i,j,k
@@ -117,5 +120,5 @@ int write_tetrs(FILE* file, int num, int i, int j, int k) // i,j,k - 'local' i,j
 
 int get_absolute_num(int i, int j, int k)
 {
-	return 1 + k * (Size) * (Size) + j * (Size) + i;
+	return 1 + k * (Size1) * (Size2) + j * (Size1) + i;
 }

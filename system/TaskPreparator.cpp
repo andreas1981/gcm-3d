@@ -203,7 +203,7 @@ int TaskPreparator::load_task( string task_file, string zones_file, string data_
 		col_det->set_static(true);
 
 	// Configure collision detector and attach to mesh set
-	col_det->set_treshold( 0.1 );
+	col_det->set_treshold( 1 );
 	mesh_set->attach( col_det );
 
 

@@ -15,7 +15,11 @@ float quick_math::tri_area(float x1, float y1, float z1, float x2, float y2, flo
 	float a2 = x1*x1 + y1*y1 + z1*z1;
 	float b2 = x2*x2 + y2*y2 + z2*z2;
 	float ab = x1*x2 + y1*y2 + z1*z2;
-	return sqrt(a2*b2 - ab*ab)/2;
+	float diff = a2*b2 - ab*ab;
+	// It happens sometimes for zero-area triangles because of float point errors
+	if(diff < 0)
+		return 0; 
+	return sqrt(diff)/2;
 };
 
 // Just determinant
