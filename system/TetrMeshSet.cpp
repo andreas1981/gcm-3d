@@ -103,6 +103,7 @@ int TetrMeshSet::do_next_step()
 	// We need this 0.99 to avoid false 'outer characteristics' exception because of floating point operations rounding errors.
 	// This happen when the point should be exactly on the face of the tetrahedron.
 	float time_step = 0.99 * data_bus->get_max_possible_tau(get_max_possible_tau());
+	time_step = 0.002;//0.0019;//0.00006;
 
 	// Static detector means you are sure virt nodes don't change between time steps and there is no need to recalculate them
 	// Static collision detector is run only once at the first time step
@@ -111,6 +112,9 @@ int TetrMeshSet::do_next_step()
 	{
 		// Clear virtual nodes because they change between time steps
 		virt_nodes.clear();
+		// Clear contact state for local meshes because it is invalid now
+		for (int l = 0; l < local_meshes.size(); l++)
+			local_meshes[l]->clear_contact_state();
 		// Find collisions and fill virtual nodes
 		collision_detector->find_collisions(virt_nodes);
 	}
@@ -163,13 +167,15 @@ int TetrMeshSet::do_next_step()
 		}
 	}
 
-// FIXME
-//	for(int i = 0; i < local_meshes.size(); i++)
-//		local_meshes[i]->move_coords(time_step);
+	for(int i = 0; i < local_meshes.size(); i++)
+		local_meshes[i]->move_coords(time_step);
 
 	for(int i = 0; i < local_meshes.size(); i++)
 		if( local_meshes[i]->proceed_rheology() < 0 )
 			throw GCMException( GCMException::MESH_EXCEPTION, "Proceed rheology failed");
+
+	for(int i = 0; i < local_meshes.size(); i++)
+		local_meshes[i]->calc_destruction_criterias();
 
 	for(int i = 0; i < local_meshes.size(); i++)
 		local_meshes[i]->update_current_time(time_step);
@@ -214,7 +220,7 @@ void TetrMeshSet::sync_remote_data()
 			if( meshes[i].nodes[k].absolute_num > max_node_num )
 				max_node_num = meshes[i].nodes[k].absolute_num;
 
-		*logger << "Mesh #" << i << " Max absolute num: " < max_node_num;
+		*logger << "Mesh #" << zone_num << " Max absolute num: " < max_node_num;
 
 		if(max_node_num >= 0) {
 			renum[zone_num] = new int[max_node_num + 1];
@@ -238,12 +244,15 @@ void TetrMeshSet::sync_remote_data()
 			if( (local_meshes[l]->nodes[i].border_type == BORDER) 
 				&& (local_meshes[l]->nodes[i].contact_data->axis_plus[0] != -1) )
 			{
+//				*logger << "Looking for virt node " < local_meshes[l]->nodes[i].contact_data->axis_plus[0];
 				ElasticNode *vnode = getNode( local_meshes[l]->nodes[i].contact_data->axis_plus[0] );
 				vnode->mesh = get_mesh_by_zone_num(vnode->remote_zone_num);
 				if(vnode->mesh == NULL)
 					throw GCMException( GCMException::COLLISION_EXCEPTION, "Can't find remote zone for vnode");
 
+//				*logger << "Virt node data: " << vnode->remote_zone_num << " " < vnode->absolute_num;;
 				int origin_index = renum[ vnode->remote_zone_num ][ vnode->absolute_num ] - 1;
+//				*logger << "Virt node data: " < origin_index;
 
 				if( origin_index < 0 )
 					throw GCMException( GCMException::COLLISION_EXCEPTION, "Can't find virt node origin");

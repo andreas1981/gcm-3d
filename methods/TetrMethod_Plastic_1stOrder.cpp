@@ -76,12 +76,20 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_node(ElasticNod
 
 int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_node(ElasticNode* cur_node, ElasticMatrix3D* matrixes[], float time_step, int stage, TetrMesh* mesh, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num, bool debug)
 {
+	if(debug)
+		*logger < "DEBUG 1";
 
 	if (cur_node->border_type == BORDER)
 		mesh->find_border_node_normal(cur_node->local_num, &outer_normal[0], &outer_normal[1], &outer_normal[2]);
 
+	if(debug)
+		*logger < "DEBUG 2";
+
 	//  Prepare matrixes  A, Lambda, Omega, Omega^(-1)
 	prepare_part_step(cur_node, matrixes[stage], stage, basis_num);
+
+	if(debug)
+		*logger < "DEBUG 3";
 
 	for(int i = 0; i < 9; i++)
 		dksi[i] = - matrixes[stage]->L(i,i) * time_step;
@@ -89,6 +97,9 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_node(ElasticNod
 	float alpha = 0;
 
 	int outer_count;
+
+	if(debug)
+		*logger < "DEBUG 4";
 
 	do {
 		outer_count = find_nodes_on_previous_time_layer(cur_node, stage, mesh, alpha, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num, debug);
@@ -220,7 +231,8 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 
 	// TODO - merge this condition with the next ones
 	if((outer_count != 0) && (outer_count != 3)) {
-		*logger << "There are " << outer_count < " 'outer' characteristics.";
+		*logger << "There are " << outer_count < " 'outer' characteristics for real node.";
+		outer_count = prepare_node(cur_node, elastic_matrix3d, time_step, stage, mesh, dksi, inner, previous_nodes, outer_normal, ppoint_num, basis_num, true);
 		log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi);
 		throw GCMException(GCMException::METHOD_EXCEPTION, "Illegal number of outer characteristics");
 	}
@@ -333,8 +345,8 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 
 			// TODO - merge this condition with the next ones
 			if( virt_outer_count != 3 ) {
-					*logger << "There are " << virt_outer_count < " 'outer' characteristics.";
-					*logger << "REAL NODE " << cur_node->local_num << ": " 
+					*logger << "There are " << virt_outer_count < " 'outer' characteristics for virt node.";
+					*logger << "MESH " << mesh->zone_num << " REAL NODE " << cur_node->local_num << ": " 
 								<< "x: " << cur_node->coords[0] 
 								<< " y: " << cur_node->coords[1] 
 								<< " z: " < cur_node->coords[2];
@@ -352,7 +364,7 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 				float v_x_outer[3];
 				float v_x_virt[3];
 				// Real node - if characteristic is 'outer'
-				if(!inner[i])
+/*				if(!inner[i])
 				{
 					// Find directions to corresponding 'outer' point and to virt 'paired node'
 					for(int j = 0; j < 3; j++) {
@@ -363,7 +375,7 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 					if( (v_x_outer[0] * v_x_virt[0]
 						 + v_x_outer[1] * v_x_virt[1] + v_x_outer[2] * v_x_virt[2]) < 0 )
 					{
-						*logger << "REAL NODE " << cur_node->local_num << ": " 
+						*logger << "MESH " << mesh->zone_num << "REAL NODE " << cur_node->local_num << ": " 
 								<< "x: " << cur_node->coords[0] 
 								<< " y: " << cur_node->coords[1] 
 								<< " z: " < cur_node->coords[2];
@@ -374,8 +386,9 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 							<< v_x_virt[1] << " " < v_x_virt[2];
 						throw GCMException( GCMException::METHOD_EXCEPTION, "Bad contact from real node point of view: 'outer' and 'virt' directions are different");
 					}
-				}
-				// Virt node - if characteristic is 'outer'
+				}*/
+// We switch it off because it conflicts sometimes with 'safe_direction'
+/*				// Virt node - if characteristic is 'outer'
 				if(!virt_inner[i])
 				{
 					// Find directions to corresponding 'outer' point and to real 'paired node'
@@ -387,7 +400,7 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 					if( (v_x_outer[0] * v_x_virt[0]
 						+ v_x_outer[1] * v_x_virt[1] + v_x_outer[2] * v_x_virt[2]) < 0 )
 					{
-						*logger << "REAL NODE " << cur_node->local_num << ": " 
+						*logger << "MESH " << mesh->zone_num << "REAL NODE " << cur_node->local_num << ": " 
 								<< "x: " << cur_node->coords[0] 
 								<< " y: " << cur_node->coords[1] 
 								<< " z: " < cur_node->coords[2];
@@ -398,7 +411,7 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 							<< v_x_virt[1] << " " < v_x_virt[2];
 						throw GCMException( GCMException::METHOD_EXCEPTION, "Bad contact from virt node point of view: 'outer' and 'virt' directions are different");
 					}
-				}
+				}*/
 			}
 
 			cur_node->contact_condition->do_calc(mesh->get_current_time(), cur_node->coords, new_node, elastic_matrix3d[stage], previous_values, inner, virt_elastic_matrix3d[stage], virt_previous_values, virt_inner, outer_normal);
@@ -415,12 +428,38 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_
 
 int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_time_layer(ElasticNode* cur_node, int stage, TetrMesh* mesh, float alpha, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num, bool debug)
 {
+	float safe_direction[3];
+	// FIXME - bad choice - just for PoC
+	for(int j = 0; j < 3; j++)
+		safe_direction[j] = - ( cur_node->coords[j] - (mesh->nodes).at(cur_node->local_num).coords[j] );
+
+	int tetr_num = cur_node->elements->at(0);
+	Tetrahedron* neighTetr = mesh->get_tetrahedron(tetr_num);
+
+	float tetr_center[3];
+	// Tetr center
+	for(int i = 0; i < 3; i++)
+		tetr_center[i] = ( (mesh->nodes)[ neighTetr->vert[0] ].coords[i] + (mesh->nodes)[ neighTetr->vert[1] ].coords[i]
+				+ (mesh->nodes)[ neighTetr->vert[2] ].coords[i] + (mesh->nodes)[ neighTetr->vert[3] ].coords[i] ) / 4;
+
+//	for(int i = 0; i < 3; i++)
+//		safe_direction[i] = - ( cur_node->coords[i] - tetr_center[i] );
+
+
+	if(debug)
+		*logger << "DEBUG 5 alpha=" < alpha;
+
 
 	if( (alpha > 1.01) || (alpha < 0) )
 		throw GCMException( GCMException::METHOD_EXCEPTION, "Bad alpha");
 
 	if (stage >= 3)
 		throw GCMException( GCMException::METHOD_EXCEPTION, "Bad stage number");
+
+	if(alpha > 1.0) {
+		alpha = 1.0;
+//		*logger < "Shitty alpha";
+	}
 
 	// Just tmp tetr pointer
 	Tetrahedron* tmp_tetr;
@@ -429,7 +468,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_
 
 	float dx[3];
 	float dx_ksi[3];
-	float dx_ksi_normal_projection[3];
+	float safe_direction_projection[3];
 
 	// For all omegas
 	for(int i = 0; i < 9; i++)
@@ -464,7 +503,10 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_
 			// In this case dx_ksi_normal_projection_modul != 0
 			// float dx_ksi_normal_projection_modul = dx_ksi[0] * outer_normal[0] + dx_ksi[1] * outer_normal[1] + dx_ksi[2] * outer_normal[2];
 			// TODO - this criteria to be used with rotation_matrix_with_normal
-			float dx_ksi_normal_projection_modul = - fabs(dksi[i]);
+			// float dx_ksi_normal_projection_modul = - fabs(dksi[i]);
+
+			// FIXME - bad choice - just for PoC
+			float safe_direction_projection_modul = 1;//0.95 * ((TetrMesh_1stOrder*)mesh)->get_min_h();
 
 			// ... Calculate coordinates ...
 			for(int j = 0; j < 3; j++) {
@@ -482,8 +524,8 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_
 							dx[j] = dx_ksi[j];
 						else
 						{
-							dx_ksi_normal_projection[j] = - fabs(dx_ksi_normal_projection_modul) * outer_normal[j];
-							dx[j] = dx_ksi[j] * (1 - alpha) + dx_ksi_normal_projection[j] * alpha;
+							safe_direction_projection[j] = safe_direction_projection_modul * safe_direction[j];
+							dx[j] = dx_ksi[j] * (1 - alpha) + safe_direction_projection[j] * alpha;
 						}
 					}
 					// Negative direction has virtual node - alter positive direction only
@@ -494,8 +536,8 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_
 							dx[j] = dx_ksi[j];
 						else
 						{
-							dx_ksi_normal_projection[j] = - fabs(dx_ksi_normal_projection_modul) * outer_normal[j];
-							dx[j] = dx_ksi[j] * (1 - alpha) + dx_ksi_normal_projection[j] * alpha;
+							safe_direction_projection[j] = safe_direction_projection_modul * safe_direction[j];
+							dx[j] = dx_ksi[j] * (1 - alpha) + safe_direction_projection[j] * alpha;
 						}
 					}
 					else
@@ -510,8 +552,8 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_
 					if( dksi[i] >= 0 ) {
 						dx[j] = dx_ksi[j];
 					} else {
-						dx_ksi_normal_projection[j] = dx_ksi_normal_projection_modul*outer_normal[j];
-						dx[j] = dx_ksi[j] * (1 - alpha) + dx_ksi_normal_projection[j] * alpha;
+						safe_direction_projection[j] = safe_direction_projection_modul * safe_direction[j];
+						dx[j] = dx_ksi[j] * (1 - alpha) + safe_direction_projection[j] * alpha;
 					}
 				}
 
@@ -522,15 +564,94 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_
 				previous_nodes[count].coords[j] = (mesh->nodes).at(cur_node->local_num).coords[j] + dx[j];
 			}
 
+			// FIXME last chance attempt
+			if(alpha > 0.95) {
+				float fafa = ((TetrMesh_1stOrder*)mesh)->get_min_h();
+//*logger < "Last attempt happens";
+//for(int z = 0; z < 3; z++)
+	//*logger < cur_node->coords[z];
+//				if( dksi[i] < 0 )
+				if( ! ( (cur_node->border_type == BORDER) && (stage == 0) && (dksi[i] > 0) ) )
+					for(int z = 0; z < 3; z++) {
+//						dx[z] = - fafa * safe_direction[z];
+						dx[z] = tetr_center[z] - (mesh->nodes).at(cur_node->local_num).coords[z];
+						previous_nodes[count].coords[z] = (mesh->nodes).at(cur_node->local_num).coords[z] + dx[z];
+//						*logger < dx[z];
+					}
+//			dx[z] = safe_direction[z] + ( cur_node->coords[z] - (mesh->nodes).at(cur_node->local_num).coords[z] );
+//			dx[z] = tetr_center[z] - (mesh->nodes).at(cur_node->local_num).coords[z];
+			}
+
+			if(debug)
+				*logger < "DEBUG 6";
+
 			// ... Find owner tetrahedron ...
 			tmp_tetr = mesh->find_owner_tetr(cur_node, dx[0], dx[1], dx[2], debug);
 
-			if( tmp_tetr != NULL )
+			// special cases - contact direction must be outer - we have issues with virt nodes when they are moved
+			// and some characterictics (shorter ones) DO fit into inner area
+			if ( ( cur_node->contact_data != NULL ) 
+					&& ( cur_node->contact_data->axis_plus[stage] != -1 ) && ( dksi[i] > 0 ) )
 			{
+				inner[i] = false;
+			}
+			else if ( ( cur_node->contact_data != NULL ) 
+					&& ( cur_node->contact_data->axis_minus[stage] != -1 ) && ( dksi[i] < 0 ) )
+			{
+				inner[i] = false;
+			}
+			else if( tmp_tetr != NULL )
+			{
+				if(debug)
+					*logger < "DEBUG 6.1";
 				// ... And interpolate values
 				mesh->interpolate(&previous_nodes[count], tmp_tetr);
 				inner[i] = true;
-			} else {
+			}
+			else if (dksi[i] == 0)
+			{
+				if(debug)
+					*logger < "DEBUG 6.2";
+				previous_nodes[count] = *cur_node;
+				inner[i] = true;
+			}
+			else if ( (cur_node->border_type == INNER) /*|| (stage != 0)*/ )
+			{
+*logger < "We need new method here!";
+*logger << cur_node->local_num << " " << cur_node->coords[0] << " " << cur_node->coords[1] << " " < cur_node->coords[2];
+for(int j = 0; j < 3; j++)
+	*logger < dksi[i] * random_axis[basis_num].ksi[stage][j];
+
+float cross[3];
+tmp_tetr = mesh->find_border_cross(cur_node, dx[0], dx[1], dx[2], cross);
+
+// !!!! FIXME - time-aware interpolation required
+for(int j = 0; j < 3; j++)
+	previous_nodes[count].coords[j] = cross[j];
+mesh->interpolate(&previous_nodes[count], tmp_tetr);
+inner[i] = true;
+
+//for(int j = 0; j < 3; j++)
+//	*logger < cross[j];
+//for(int j = 0; j < 4; j++)
+//	*logger < tmp_tetr->vert[j];
+
+//throw GCMException( GCMException::METHOD_EXCEPTION, "Issue with characteristics");
+			}
+			else
+			{
+				if(debug) {
+					*logger < "DEBUG 6.3";
+					float fafa = ((TetrMesh_1stOrder*)mesh)->get_min_h();
+					if( mesh->find_owner_tetr(cur_node, 
+						-fafa * safe_direction[0], -fafa * safe_direction[1], -fafa * safe_direction[2], debug) != NULL )
+					{
+						*logger << "WTF???????????? safe_direction is correct. Modul is " << fabs(safe_direction_projection_modul) << " Safe value is: " < fafa;
+						for(int j = 0; j < 3; j++)
+							*logger << "DATA " << dx[j] << " " << dx_ksi[j] << " " << safe_direction_projection[j] << " " <<  ( cur_node->coords[j] - (mesh->nodes).at(cur_node->local_num).coords[j] ) << " " < alpha;
+					} else
+						*logger < "Normal is really incorrect";
+				}
 				// There is no value in interpolation in this case
 				//	as long as characteristic is out of region
 				inner[i] = false;

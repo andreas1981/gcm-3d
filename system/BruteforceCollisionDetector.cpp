@@ -34,6 +34,8 @@ void BruteforceCollisionDetector::find_collisions(vector<ElasticNode> &virt_node
 				find_faces_in_intersection(mesh2->border, mesh2->nodes, intersection, local_faces);
 				*logger << "Got " << local_nodes.size() << " nodes and " << local_faces.size() < " local faces";
 
+				*logger << "Virt nodes size before processing: " < virt_nodes.size();
+
 				// process collisions
 				ElasticNode new_node;
 				float direction[3];
@@ -79,6 +81,8 @@ void BruteforceCollisionDetector::find_collisions(vector<ElasticNode> &virt_node
 						}
 					}
 				}
+
+				*logger << "Virt nodes size after processing: " < virt_nodes.size();
 
 				// clear
 				local_nodes.clear();

@@ -46,6 +46,7 @@ void TetrMesh::translate(float x, float y, float z)
 
 void TetrMesh::clear_contact_data(ElasticNode* node)
 {
+	node->contact_type = FREE;
 	if(node->contact_data != NULL) {
 		node->contact_data->axis_plus[0] = -1;
 		node->contact_data->axis_plus[1] = -1;

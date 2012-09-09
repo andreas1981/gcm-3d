@@ -6,6 +6,7 @@ TetrMesh_1stOrder::TetrMesh_1stOrder()
 	T = gsl_matrix_alloc(3, 3);
 	S = gsl_matrix_alloc(3, 3);
 	P = gsl_permutation_alloc(3);
+	mesh_min_h = -1;
 };
 
 TetrMesh_1stOrder::~TetrMesh_1stOrder()
@@ -35,6 +36,13 @@ void TetrMesh_1stOrder::clear_data()
 	new_nodes.clear();
 	tetrs.clear();
 	border.clear();
+	mesh_min_h = -1;
+};
+
+void TetrMesh_1stOrder::clear_contact_state()
+{
+	for(int i = 0; i < nodes.size(); i++)
+		clear_contact_data(&nodes[i]);
 };
 
 //TODO - ugly hack - think about if we need it and how to implement it
@@ -59,7 +67,7 @@ int TetrMesh_1stOrder::pre_process_mesh()
 	border.clear();
 
 	// Guaranteed allowed step
-	float step_h = get_min_h() / 4; // TODO avoid magick number
+	float step_h = get_max_h() / 4; // TODO avoid magick number
 
 	*logger < "Preprocessing mesh started...";
 
@@ -171,7 +179,9 @@ int TetrMesh_1stOrder::pre_process_mesh()
 		check_triangle_to_be_border(tetrs[i].vert[0], tetrs[i].vert[2], tetrs[i].vert[3], tetrs[i].vert[1], step_h);
 		check_triangle_to_be_border(tetrs[i].vert[1], tetrs[i].vert[2], tetrs[i].vert[3], tetrs[i].vert[0], step_h);
 	}
-
+*logger < nodes.size();
+*logger < tetrs.size();
+*logger < border.size();
 	*logger < "Building surface reverse lookups";
 
 	// Init vectors for "reverse lookups" of border triangles current node is a member of.
@@ -194,7 +204,7 @@ int TetrMesh_1stOrder::pre_process_mesh()
 	{
 		if(nodes[i].border_type == BORDER) {
 
-			find_border_node_normal(i, &normal[0], &normal[1], &normal[2]);
+			find_border_node_normal(i, &normal[0], &normal[1], &normal[2], step_h);
 
 			// Displacement along normal
 			dx[0] = step_h * normal[0];
@@ -359,6 +369,11 @@ int TetrMesh_1stOrder::find_border_elem_normal(int v1, int v2, int v3, float* x,
 
 int TetrMesh_1stOrder::find_border_node_normal(int border_node_index, float* x, float* y, float* z)
 {
+	return find_border_node_normal(border_node_index, x, y, z, get_min_h());
+};
+
+int TetrMesh_1stOrder::find_border_node_normal(int border_node_index, float* x, float* y, float* z, float min_h /* Remove h from parameters */)
+{
 	float final_normal[3];
 	final_normal[0] = 0;
 	final_normal[1] = 0;
@@ -367,6 +382,7 @@ int TetrMesh_1stOrder::find_border_node_normal(int border_node_index, float* x, 
 	float cur_normal[3];
 
 	int count = nodes[border_node_index].border_elements->size();
+
 	for(int i = 0; i < count; i++) {
 		find_border_elem_normal( (int) nodes[border_node_index].border_elements->at(i), &cur_normal[0], &cur_normal[1], &cur_normal[2] );
 		final_normal[0] += cur_normal[0];	final_normal[1] += cur_normal[1];	final_normal[2] += cur_normal[2];
@@ -385,7 +401,48 @@ int TetrMesh_1stOrder::find_border_node_normal(int border_node_index, float* x, 
 	*y = final_normal[1];
 	*z = final_normal[2];
 
-	return 0;
+	// If we are inside the body moving against normal - everything ok, just return
+	if( find_owner_tetr(&nodes[border_node_index], - min_h * final_normal[0], - min_h * final_normal[1], - min_h * final_normal[2]) != NULL )
+		return 0;
+
+	// If we are here - it means the node is on some 'sharp' edge
+	// In this case normal calculated as average of elements' normals is out of the body
+	// Failback option - do not use average from all elements, get average between min-max only
+	*logger < "DEBUG: using find_border_node_normal failback option";
+
+	float min_coords[3];
+	float max_coords[3];
+
+	find_border_elem_normal( (int) nodes[border_node_index].border_elements->at(0), &cur_normal[0], &cur_normal[1], &cur_normal[2] );
+
+	for(int i = 0; i < 3; i++) {
+		min_coords[i] = cur_normal[i];		max_coords[i] = cur_normal[i];
+	}
+
+	for(int i = 1; i < count; i++) {
+		find_border_elem_normal( (int) nodes[border_node_index].border_elements->at(i), &cur_normal[0], &cur_normal[1], &cur_normal[2] );
+		for(int i = 0; i < 3; i++) {
+			if( max_coords[i] < cur_normal[i] )
+				max_coords[i] = cur_normal[i];
+			if( min_coords[i] > cur_normal[i] )
+				min_coords[i] = cur_normal[i];
+		}
+	}
+
+	for(int i = 0; i < 3; i++)
+		final_normal[i] = min_coords[i] + max_coords[i];
+
+	l = sqrt( final_normal[0] * final_normal[0] + final_normal[1] * final_normal[1] + final_normal[2] * final_normal[2] );
+	final_normal[0] /= l;
+        final_normal[1] /= l;
+        final_normal[2] /= l;
+
+	*x = final_normal[0];
+	*y = final_normal[1];
+	*z = final_normal[2];
+
+	if( find_owner_tetr(&nodes[border_node_index], - min_h * final_normal[0], - min_h * final_normal[1], - min_h * final_normal[2]) == NULL )
+		throw GCMException( GCMException::MESH_EXCEPTION, "Can not create reasonable normal for node - is the border too sharp?");
 }
 
 // TODO move actual file and string operations into TaskPreparator or MshFileReader
@@ -614,6 +671,8 @@ int TetrMesh_1stOrder::load_msh_file(char* file_name)
 		new_node.volume_calculator = NULL;
 		new_node.border_condition = NULL;
 		new_node.contact_condition = NULL;
+		for(int z = 0; z < 8; z++)
+			new_node.destruction_criterias[z] = 0;
 
 		infile >> new_node.local_num;
 		if(new_node.local_num > 0)
@@ -768,6 +827,14 @@ float TetrMesh_1stOrder::tetr_h(int i)
 // Finds minimum h over mesh
 float TetrMesh_1stOrder::get_min_h()
 {
+	if(mesh_min_h < 0)
+		calc_min_h();
+
+	return mesh_min_h;
+};
+
+void TetrMesh_1stOrder::calc_min_h()
+{
 	float min_h = -1;
 	float h;
 	// Go through tetrahedrons
@@ -790,8 +857,7 @@ float TetrMesh_1stOrder::get_min_h()
 		// Otherwise - just find minimum
 		if(h < min_h) { min_h = h; }
 	}
-
-	return min_h;
+	mesh_min_h = min_h;
 };
 
 // Finds maximum h over mesh
@@ -1022,14 +1088,29 @@ bool TetrMesh_1stOrder::point_in_tetr(int base_node_index, float dx, float dy, f
 	return point_in_tetr(base_node_index, dx, dy, dz, tetr, false);
 };
 
-bool TetrMesh_1stOrder::point_in_tetr(int base_node_index, float dx, float dy, float dz, Tetrahedron* tetr, bool debug)
+bool TetrMesh_1stOrder::point_in_tetr(int base_node_index, float _dx, float _dy, float _dz, Tetrahedron* tetr, bool debug)
 {
-	float d1,d2;
 
-	// FIXME
-	// switch to #ifdef instead of if (debug)?
+	// TODO FIXME - we use this to workaround very small displacements that fail due to floating point rounding errors
+	float min_h = tetr_h(tetr->local_num);
+	float delta = sqrt(_dx*_dx + _dy*_dy + _dz*_dz);
+
+	float dx, dy, dz;
+
+	if( (delta > 0) && (delta < min_h * 0.99) ) {
+		dx = _dx * min_h * 0.99 / delta;
+		dy = _dy * min_h * 0.99 / delta;
+		dz = _dz * min_h * 0.99 / delta;
+	} else {
+		dx = _dx;
+		dy = _dy;
+		dz = _dz;
+	}
+
 	if(debug) {
+		*logger << "MinH = " << min_h << " Delta = " < delta;
 		*logger < "DEBUG: TetrMesh_1stOrder::point_in_tetr";
+		*logger <<"Point: num: " << base_node_index << " _dx: " << _dx << " _dy: " << _dy << " _dz: " < _dz;
 		*logger <<"Point: num: " << base_node_index << " dx: " << dx << " dy: " << dy << " dz: " < dz;
 		*logger << "Tetr: " < tetr->local_num;
 		for(int j = 0; j < 4; j++) {
@@ -1040,6 +1121,85 @@ bool TetrMesh_1stOrder::point_in_tetr(int base_node_index, float dx, float dy, f
 				<< " z: " < tmp_node->coords[2];
 		}
 	}
+
+
+	float Vol = fabs( qm_engine.tetr_volume(
+		(nodes[tetr->vert[1]].coords[0])-(nodes[tetr->vert[0]].coords[0]),
+		(nodes[tetr->vert[1]].coords[1])-(nodes[tetr->vert[0]].coords[1]),
+		(nodes[tetr->vert[1]].coords[2])-(nodes[tetr->vert[0]].coords[2]),
+		(nodes[tetr->vert[2]].coords[0])-(nodes[tetr->vert[0]].coords[0]),
+		(nodes[tetr->vert[2]].coords[1])-(nodes[tetr->vert[0]].coords[1]),
+		(nodes[tetr->vert[2]].coords[2])-(nodes[tetr->vert[0]].coords[2]),
+		(nodes[tetr->vert[3]].coords[0])-(nodes[tetr->vert[0]].coords[0]),
+		(nodes[tetr->vert[3]].coords[1])-(nodes[tetr->vert[0]].coords[1]),
+		(nodes[tetr->vert[3]].coords[2])-(nodes[tetr->vert[0]].coords[2])
+	) );
+
+	float x = nodes[base_node_index].coords[0] + dx;
+        float y = nodes[base_node_index].coords[1] + dy;
+        float z = nodes[base_node_index].coords[2] + dz;
+
+	float vols[4];
+
+	vols[0] = fabs( qm_engine.tetr_volume(
+		(nodes[tetr->vert[1]].coords[0])-x,
+		(nodes[tetr->vert[1]].coords[1])-y,
+		(nodes[tetr->vert[1]].coords[2])-z,
+		(nodes[tetr->vert[2]].coords[0])-x,
+		(nodes[tetr->vert[2]].coords[1])-y,
+		(nodes[tetr->vert[2]].coords[2])-z,
+		(nodes[tetr->vert[3]].coords[0])-x,
+		(nodes[tetr->vert[3]].coords[1])-y,
+		(nodes[tetr->vert[3]].coords[2])-z
+	) );
+
+	vols[1] = fabs( qm_engine.tetr_volume(
+		(nodes[tetr->vert[0]].coords[0])-x,
+		(nodes[tetr->vert[0]].coords[1])-y,
+		(nodes[tetr->vert[0]].coords[2])-z,
+		(nodes[tetr->vert[2]].coords[0])-x,
+		(nodes[tetr->vert[2]].coords[1])-y,
+		(nodes[tetr->vert[2]].coords[2])-z,
+		(nodes[tetr->vert[3]].coords[0])-x,
+		(nodes[tetr->vert[3]].coords[1])-y,
+		(nodes[tetr->vert[3]].coords[2])-z
+	) );
+
+	vols[2] = fabs( qm_engine.tetr_volume(
+		(nodes[tetr->vert[1]].coords[0])-x,
+		(nodes[tetr->vert[1]].coords[1])-y,
+		(nodes[tetr->vert[1]].coords[2])-z,
+		(nodes[tetr->vert[0]].coords[0])-x,
+		(nodes[tetr->vert[0]].coords[1])-y,
+		(nodes[tetr->vert[0]].coords[2])-z,
+		(nodes[tetr->vert[3]].coords[0])-x,
+		(nodes[tetr->vert[3]].coords[1])-y,
+		(nodes[tetr->vert[3]].coords[2])-z
+	) );
+
+	vols[3] = fabs( qm_engine.tetr_volume(
+		(nodes[tetr->vert[1]].coords[0])-x,
+		(nodes[tetr->vert[1]].coords[1])-y,
+		(nodes[tetr->vert[1]].coords[2])-z,
+		(nodes[tetr->vert[2]].coords[0])-x,
+		(nodes[tetr->vert[2]].coords[1])-y,
+		(nodes[tetr->vert[2]].coords[2])-z,
+		(nodes[tetr->vert[0]].coords[0])-x,
+		(nodes[tetr->vert[0]].coords[1])-y,
+		(nodes[tetr->vert[0]].coords[2])-z
+	) );
+
+	if( vols[0] + vols[1] + vols[2] + vols[3] < Vol * 1.001 ) {
+		if(debug) { *logger < "IN"; }
+		return true;
+	} else {
+		if(debug) { *logger < "OUT"; }
+		return false;
+	}
+
+
+	float d1,d2;
+
 
 	if( triangleOrientationOk(tetr->vert[1], tetr->vert[2], tetr->vert[3]) ) {
 		d1 = calc_determ_pure_tetr(tetr->vert[1], tetr->vert[2], tetr->vert[3], tetr->vert[0]);
@@ -1237,6 +1397,146 @@ Tetrahedron_1st_order* TetrMesh_1stOrder::find_owner_tetr(ElasticNode* node, flo
 
 };
 
+
+Tetrahedron_1st_order* TetrMesh_1stOrder::find_border_cross(ElasticNode* node, float dx, float dy, float dz, float* coords)
+{
+	// TODO - clean the code - unnecessary 'x <-> dx' and node 'pointer <-> index' intermix
+	int base_node = node->local_num;
+
+	float x = nodes[base_node].coords[0] + dx;
+	float y = nodes[base_node].coords[1] + dy;
+	float z = nodes[base_node].coords[2] + dz;
+
+	// A square of distance between point in question and local node
+	// Will be used to check if it is worth to continue search or point in question is out of body
+	float R2 = dx * dx + dy * dy + dz * dz;
+
+	float dist = sqrt(R2);
+	float direction[3];
+	direction[0] = dx / dist;
+	direction[1] = dy / dist;
+	direction[2] = dz / dist;
+
+	#ifdef DEBUG_MESH_GEOMETRY
+	*logger < "DEBUG: TetrMesh_1stOrder::find_owner_tetr";
+	*logger << "\t\tR2: " < R2;
+	#endif
+
+	//TODO May be std::set will be better? It guarantees unique elements.
+	vector<int> checked; // Already checked tetrahedrons
+	vector<int> checking; // Tetrs we are checking just now
+	vector<int> tmp_to_check; // tmp list, used to construct new 'checking' list
+
+	checked.clear();
+	checking.clear();
+	tmp_to_check.clear();
+
+	// If current tetrs are inside sphere of radius R or not. If not - we should stop search and return NULL
+	bool inside_R = true;
+
+	float local_x, local_y, local_z;
+
+	for(int i = 0; i < (node->elements)->size(); i++)
+		checking.push_back((node->elements)->at(i));
+
+	while(inside_R)
+	{
+		inside_R = false;
+
+		// Check current tetrs
+		for(int i = 0; i < checking.size(); i++)
+		{
+			int border_verts_count = 0;
+			int border_verts[3];
+			for(int j = 0; j < 4; j++)
+				if( nodes[ tetrs[checking[i]].vert[j] ].border_type == BORDER ) {
+					border_verts[ border_verts_count ] = tetrs[checking[i]].vert[j];
+					border_verts_count++;
+				}
+			if( border_verts_count == 3 ) {
+
+				*logger < "Border face found. Looking for intersection.";
+
+				if( vector_intersects_triangle( 
+						nodes[ border_verts[0] ].coords,
+						nodes[ border_verts[1] ].coords,
+						nodes[ border_verts[2] ].coords,
+						node->coords,
+						direction, dist, coords ) ) {
+					*logger < "Intersection found.";
+					return &tetrs[checking[i]];
+				}
+			}
+
+			// Check if this tetr is still inside sphere of radius R
+			// If we have already found at least one tetr in the sphere - skip check
+			if(!inside_R)
+			{
+				// For all verticles of current tetr
+				for(int j = 0; j < 4; j++)
+				{
+					// Skip base node. Otherwise we'll get false positive insideR for the 1st and 2nd layers
+					if( nodes[ tetrs[checking[i]].vert[j] ].local_num == base_node )
+						break;
+
+					local_x = nodes[ tetrs[checking[i]].vert[j] ].coords[0];
+					local_y = nodes[ tetrs[checking[i]].vert[j] ].coords[1];
+					local_z = nodes[ tetrs[checking[i]].vert[j] ].coords[2];
+					// If its distance smaller than R
+					if( ( (node->coords[0] - local_x) * (node->coords[0] - local_x) 
+						+ (node->coords[1] - local_y) * (node->coords[1] - local_y) 
+						+ (node->coords[2] - local_z) * (node->coords[2] - local_z) ) < R2 ) {
+							inside_R = true;
+					}
+					// TODO FIXME In theory we whould check if sphere and tetr intersect.
+					// Current check - if at least one vert is in sphere.
+					// It can be wrong on turbo bad tetrs. It fails if
+					// sphere goes 'through' tetr to next layer but does not include its verticles.
+				}
+			}
+		}
+
+		// If current layer is not in sphere - there is no need to create next layer - just return NULL
+		if(!inside_R)
+			return NULL;
+
+		// If not found in current tetrs - create new lists
+
+		// First - add checked tetrs to the 'checked' list
+		for(int i = 0; i < checking.size(); i++)
+			checked.push_back(checking[i]);
+
+		// Create very long list of all tetrs adjacent to any tetr in 'checking' list
+		// (with duplicates and tetrs already checked)
+		tmp_to_check.clear();
+		for(int i = 0; i < checking.size(); i++)
+			for(int j = 0; j < 4; j++)
+				for(int k = 0; k < nodes[ tetrs[checking[i]].vert[j] ].elements->size(); k++)
+					tmp_to_check.push_back(nodes[ tetrs[checking[i]].vert[j] ].elements->at(k));
+
+		// Remove duplicates
+		sort( tmp_to_check.begin(), tmp_to_check.end() );
+		tmp_to_check.erase( unique( tmp_to_check.begin(), tmp_to_check.end() ), tmp_to_check.end() );
+
+		// Copy to 'checking' and removing elements that are already checked
+		checking.clear();
+		bool is_checked;
+		for(int i = 0; i < tmp_to_check.size(); i++)
+		{
+			is_checked = false;
+			for(int j = 0; j < checked.size(); j++)
+				if(tmp_to_check[i] == checked[j])
+					is_checked = true;
+			if(!is_checked)
+				checking.push_back(tmp_to_check[i]);
+		}
+	}
+
+	return NULL;
+
+};
+
+
 int TetrMesh_1stOrder::interpolate(ElasticNode* node, Tetrahedron* tetr)
 {
 	float Vol = qm_engine.tetr_volume(
@@ -1307,7 +1607,7 @@ int TetrMesh_1stOrder::interpolate(ElasticNode* node, Tetrahedron* tetr)
 		// If it is small - treat instability as minor and just 'smooth' it
 		// TODO - think about it more carefully
 		//if( point_in_tetr(node->local_num, node->coords[0], node->coords[1], node->coords[2], tetr) )
-		if(factor[0] + factor[1] + factor[2] + factor[3] < 1.01)
+		if(factor[0] + factor[1] + factor[2] + factor[3] < 1.25)
 		{
 			float sum = factor[0] + factor[1] + factor[2] + factor[3];
 			for(int i = 0; i < 4; i++)
@@ -1316,7 +1616,7 @@ int TetrMesh_1stOrder::interpolate(ElasticNode* node, Tetrahedron* tetr)
 		// If point is not in tetr - throw exception
 		else
 		{
-			*logger << "\tfactor[0]=" << factor[0] << " factor[1]=" << factor[1] << " factor[2]=" << factor[2] 	<< " factor[3]=" < factor[3];
+			*logger << "\tfactor[0]=" << factor[0] << " factor[1]=" << factor[1] << " factor[2]=" << factor[2] 	<< " factor[3]=" << factor[3] << " Sum: " < factor[0] + factor[1] + factor[2] + factor[3];
 
 			*logger << "\tnode.x[0]=" << node->coords[0] << " node.x[1]=" << node->coords[1] 
 				<< " node.x[2]=" < node->coords[2];
@@ -1377,13 +1677,27 @@ float TetrMesh_1stOrder::get_max_possible_tau()
 
 int TetrMesh_1stOrder::do_next_part_step(float tau, int stage)
 {
+	// Border nodes
+	*logger < "Processing border nodes";
 	for(int i = 0; i < nodes.size(); i++)
 	{
 		if(nodes[i].placement_type == LOCAL)
 		{
-			method->do_next_part_step(&nodes[i], &new_nodes[i], tau, stage, this);
+			if( nodes[i].border_type == BORDER )
+				method->do_next_part_step(&nodes[i], &new_nodes[i], tau, stage, this);
 		}
 	}
+	// Inner nodes
+	*logger < "Processing inner nodes";
+	for(int i = 0; i < nodes.size(); i++)
+	{
+		if(nodes[i].placement_type == LOCAL)
+		{
+			if( nodes[i].border_type == INNER )
+				method->do_next_part_step(&nodes[i], &new_nodes[i], tau, stage, this);
+		}
+	}
+	// Copy values
 	for(int i = 0; i < nodes.size(); i++)
 	{
 		if(nodes[i].placement_type == LOCAL)
@@ -1411,6 +1725,47 @@ void TetrMesh_1stOrder::move_coords(float tau)
 				if(nodes[i].coords[j] < outline.min_coords[j])
 					outline.min_coords[j] = nodes[i].coords[j];
 			}
+		}
+	}
+	calc_min_h();
+};
+
+void TetrMesh_1stOrder::calc_destruction_criterias()
+{
+	for(int i = 0; i < nodes.size(); i++)
+	{
+		if(nodes[i].placement_type == LOCAL)
+		{
+			nodes[i].max_compression = nodes[i].max_tension = nodes[i].max_shear = nodes[i].max_deviator = 0;
+
+			// FIXME - we need main tensor components, not diagonal components
+			if( nodes[i].values[3] > nodes[i].max_tension ) { nodes[i].max_tension = nodes[i].values[3]; }
+			if( nodes[i].values[3] < nodes[i].max_compression ) { nodes[i].max_compression = nodes[i].values[3]; }
+			if( nodes[i].values[6] > nodes[i].max_tension ) { nodes[i].max_tension = nodes[i].values[6]; }
+			if( nodes[i].values[6] < nodes[i].max_compression ) { nodes[i].max_compression = nodes[i].values[6]; }
+			if( nodes[i].values[8] > nodes[i].max_tension ) { nodes[i].max_tension = nodes[i].values[8]; }
+			if( nodes[i].values[8] < nodes[i].max_compression ) { nodes[i].max_compression = nodes[i].values[8]; }
+			nodes[i].max_compression = fabs( nodes[i].max_compression);
+
+			if( fabs(nodes[i].values[4]) > nodes[i].max_shear ) { nodes[i].max_shear = fabs(nodes[i].values[4]); }
+			if( fabs(nodes[i].values[5]) > nodes[i].max_shear ) { nodes[i].max_shear = fabs(nodes[i].values[5]); }
+			if( fabs(nodes[i].values[7]) > nodes[i].max_shear ) { nodes[i].max_shear = fabs(nodes[i].values[7]); }
+
+			nodes[i].max_deviator 
+				= sqrt( ( (nodes[i].values[3] - nodes[i].values[6]) * (nodes[i].values[3] - nodes[i].values[6]) 
+					+ (nodes[i].values[6] - nodes[i].values[8]) * (nodes[i].values[6] - nodes[i].values[8])
+					+ (nodes[i].values[3] - nodes[i].values[8]) * (nodes[i].values[3] - nodes[i].values[8])
+					+ 6 * ( (nodes[i].values[4]) * (nodes[i].values[4]) + (nodes[i].values[5]) * (nodes[i].values[5])
+					+ (nodes[i].values[7]) * (nodes[i].values[7])) ) / 6 );
+
+			if( nodes[i].max_tension > nodes[i].max_tension_history )
+				nodes[i].max_tension_history = nodes[i].max_tension;
+			if( nodes[i].max_compression > nodes[i].max_compression_history )
+				nodes[i].max_compression_history = nodes[i].max_compression;
+			if( nodes[i].max_shear > nodes[i].max_shear_history )
+				nodes[i].max_shear_history = nodes[i].max_shear;
+			if( nodes[i].max_deviator > nodes[i].max_deviator_history )
+				nodes[i].max_deviator_history = nodes[i].max_deviator;
 		}
 	}
 };
@@ -1613,6 +1968,24 @@ float TetrMesh_1stOrder::get_solid_angle(int node_index, int tetr_index)
 // For algo - see http://www.cs.princeton.edu/courses/archive/fall00/cs426/lectures/raycast/sld016.htm and use the brain
 bool TetrMesh_1stOrder::vector_intersects_triangle(float *p1, float *p2, float *p3, float *p0, float *v, float l, float *p)
 {
+	for(int i = 0; i < 3; i++)
+		if( isnan(p1[i]) || isinf(p1[i]) )
+			throw GCMException( GCMException::MESH_EXCEPTION, "NAN or INF in p1");
+	for(int i = 0; i < 3; i++)
+		if( isnan(p2[i]) || isinf(p2[i]) )
+			throw GCMException( GCMException::MESH_EXCEPTION, "NAN or INF in p2");
+	for(int i = 0; i < 3; i++)
+		if( isnan(p3[i]) || isinf(p3[i]) )
+			throw GCMException( GCMException::MESH_EXCEPTION, "NAN or INF in p3");
+	for(int i = 0; i < 3; i++)
+		if( isnan(p0[i]) || isinf(p0[i]) )
+			throw GCMException( GCMException::MESH_EXCEPTION, "NAN or INF in p0");
+	for(int i = 0; i < 3; i++)
+		if( isnan(v[i]) || isinf(v[i]) )
+			throw GCMException( GCMException::MESH_EXCEPTION, "NAN or INF in v");
+
+
+	bool result;
 	// p is point of intersection
 
 	// face normal
@@ -1624,6 +1997,10 @@ bool TetrMesh_1stOrder::vector_intersects_triangle(float *p1, float *p2, float *
 
 	// Get face normal
 	find_border_elem_normal(p1, p2, p3, &n[0], &n[1], &n[2]);
+
+	for(int i = 0; i < 3; i++)
+		if( isnan(n[i]) || isinf(n[i]) )
+			throw GCMException( GCMException::MESH_EXCEPTION, "NAN or INF in n");
 
 	// If vector is parallel to face - no intersection
 	float vn = qm_engine.scalar_product(n[0], n[1], n[2], v[0], v[1], v[2]);
@@ -1639,26 +2016,77 @@ bool TetrMesh_1stOrder::vector_intersects_triangle(float *p1, float *p2, float *
 	// If distance is too big - no intersection
 	// If we need opposite direction - no intersection as well
 	if( (t < 0) || (t > l) )
-		return false;
+		result = false;
 
 	// find point of intersection with the plane
 	for(int i = 0; i < 3; i++)
 		p[i] = p0[i] + t * v[i];
 
+	// all tests passed - it really intersects
+	result = true;
+
 	// check that point is inside triangle
 	if( ! qm_engine.same_orientation(p1, p2, p3, p) )
-		return false;
+		result = false;
 	if( ! qm_engine.same_orientation(p1, p3, p2, p) )
-		return false;
+		result = false;
 	if( ! qm_engine.same_orientation(p2, p3, p1, p) )
-		return false;
+		result = false;
 
-	// all tests passed - it really intersects
-	return true;
+	bool res1;
+	float area = fabs( qm_engine.tri_area(p3[0] - p1[0], p3[1] - p1[1], p3[2] - p1[2], p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]) );
+	float areas[3];
+	areas[0] = fabs( qm_engine.tri_area(p3[0] - p[0], p3[1] - p[1], p3[2] - p[2], p2[0] - p[0], p2[1] - p[1], p2[2] - p[2]) );
+	areas[1] = fabs( qm_engine.tri_area(p1[0] - p[0], p1[1] - p[1], p1[2] - p[2], p2[0] - p[0], p2[1] - p[1], p2[2] - p[2]) );
+	areas[2] = fabs( qm_engine.tri_area(p3[0] - p[0], p3[1] - p[1], p3[2] - p[2], p1[0] - p[0], p1[1] - p[1], p1[2] - p[2]) );
+	if( fabs(areas[0] + areas[1] + areas[2] - area) > area * 0.0001)
+		res1 = false;
+//	else if ( (areas[0] == 0) || (areas[1] == 0) || (areas[2] == 0) )
+//		res1 = false;
+	else
+		res1 = true;
+
+//		*logger << "P: " << p[0] << " " << p[1] << " " < p[2];
+	if(res1 != result) {
+		*logger << "Orient res: " << result << " Area res: " << res1 << " with " < (areas[0] + areas[1] + areas[2] > area * 1.00001);
+		*logger << "Orients: " << qm_engine.same_orientation(p1, p2, p3, p) << " " 
+				<< qm_engine.same_orientation(p1, p3, p2, p) << " "
+				< qm_engine.same_orientation(p2, p3, p1, p);
+		*logger << "Area: " << area << " Areas: " << areas[0] << " " << areas[1] << " " << areas[2] << " Sum: " < (areas[0] + areas[1] + areas[2]);
+		*logger << "P0: " << p1[0] << " " << p1[1] << " " < p1[2];
+		*logger << "P1: " << p1[0] << " " << p1[1] << " " < p1[2];
+		*logger << "P2: " << p2[0] << " " << p2[1] << " " < p2[2];
+		*logger << "P3: " << p3[0] << " " << p3[1] << " " < p3[2];
+		*logger << "P: " << p[0] << " " << p[1] << " " < p[2];
+//		throw GCMException( GCMException::MESH_EXCEPTION, "Different results for vector_intersects_triangle");
+	}
+
+	return res1;
 };
 
 bool TetrMesh_1stOrder::interpolate_triangle(float *p1, float *p2, float *p3, float *p, float *v1, float *v2, float *v3, float *v, int n)
 {
+	for(int i = 0; i < 3; i++)
+		if( isnan(p[i]) || isinf(p[i]) )
+			throw GCMException( GCMException::MESH_EXCEPTION, "NAN or INF in virt node coords");
+
+	float areas[3];
+	areas[0] = fabs( qm_engine.tri_area(p3[0] - p[0], p3[1] - p[1], p3[2] - p[2], p2[0] - p[0], p2[1] - p[1], p2[2] - p[2]) );
+	areas[1] = fabs( qm_engine.tri_area(p1[0] - p[0], p1[1] - p[1], p1[2] - p[2], p2[0] - p[0], p2[1] - p[1], p2[2] - p[2]) );
+	areas[2] = fabs( qm_engine.tri_area(p3[0] - p[0], p3[1] - p[1], p3[2] - p[2], p1[0] - p[0], p1[1] - p[1], p1[2] - p[2]) );
+
+	float l = areas[0] + areas[1] + areas[2];
+	float _l1 = areas[0] / l;
+	float _l2 = areas[2] / l;
+	float _l3 = areas[1] / l;
+
+	// interpolate
+	for(int i = 0; i < n; i++)
+		v[i] = _l1*v1[i] + _l2*v2[i] + _l3*v3[i];
+	return true;
+
+/////////////////////////////
+
 	float n1, n2, n3;
 	float p1l[3];
 	float p2l[3];
