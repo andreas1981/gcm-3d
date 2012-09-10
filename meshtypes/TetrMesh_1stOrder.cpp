@@ -1,3 +1,5 @@
+#include <iomanip>
+
 #include "TetrMesh_1stOrder.h"
 
 TetrMesh_1stOrder::TetrMesh_1stOrder()
@@ -63,13 +65,20 @@ void TetrMesh_1stOrder::add_tetr(Tetrahedron_1st_order* tetr)
 
 int TetrMesh_1stOrder::pre_process_mesh()
 {
+	*logger < "Preprocessing mesh started...";
+//	*logger < "COORDS";
+//	for(int i = 0; i < nodes.size(); i++)
+//		*logger << i << " " << nodes[i].coords[0] << " " << nodes[i].coords[1] << " " < nodes[i].coords[2];
+//	*logger < "IDX";
+//	for(int i = 0; i < tetrs.size(); i++)
+//		*logger << i << " " << tetrs[i].vert[0] << " " << tetrs[i].vert[1] << " " << tetrs[i].vert[2] << " " < tetrs[i].vert[3];
+	
 	// Just to ensure loaded border was dropped
 	border.clear();
 
 	// Guaranteed allowed step
 	float step_h = get_max_h() / 4; // TODO avoid magick number
 
-	*logger < "Preprocessing mesh started...";
 
 	*logger < "Checking numbering";
 
@@ -179,9 +188,6 @@ int TetrMesh_1stOrder::pre_process_mesh()
 		check_triangle_to_be_border(tetrs[i].vert[0], tetrs[i].vert[2], tetrs[i].vert[3], tetrs[i].vert[1], step_h);
 		check_triangle_to_be_border(tetrs[i].vert[1], tetrs[i].vert[2], tetrs[i].vert[3], tetrs[i].vert[0], step_h);
 	}
-*logger < nodes.size();
-*logger < tetrs.size();
-*logger < border.size();
 	*logger < "Building surface reverse lookups";
 
 	// Init vectors for "reverse lookups" of border triangles current node is a member of.
@@ -400,6 +406,32 @@ int TetrMesh_1stOrder::find_border_node_normal(int border_node_index, float* x, 
 	*x = final_normal[0];
 	*y = final_normal[1];
 	*z = final_normal[2];
+	
+       if( find_owner_tetr(&nodes[border_node_index], - min_h * final_normal[0], - min_h * final_normal[1], - min_h * final_normal[2]) != NULL )
+               return 0;
+
+       *logger < "DEBUG: using find_border_node_normal last chance option";
+       int tetr_num = nodes[border_node_index].elements->at(0);
+
+       float vector_end[3];
+       for(int i = 0; i < 3; i++) {
+               vector_end[i] = 0;
+               for(int j = 0; j < 4; j++)
+                       vector_end[i] += nodes[ tetrs[tetr_num].vert[j] ].coords[i];
+               vector_end[i] /= 4;
+               final_normal[i] = nodes[border_node_index].coords[i] - vector_end[i];
+       }
+
+       l = sqrt( final_normal[0] * final_normal[0] + final_normal[1] * final_normal[1] + final_normal[2] * final_normal[2] );
+       final_normal[0] /= l;
+        final_normal[1] /= l;
+        final_normal[2] /= l;
+
+       *x = final_normal[0];
+       *y = final_normal[1];
+       *z = final_normal[2];
+
+	
 
 	// If we are inside the body moving against normal - everything ok, just return
 	if( find_owner_tetr(&nodes[border_node_index], - min_h * final_normal[0], - min_h * final_normal[1], - min_h * final_normal[2]) != NULL )
@@ -803,8 +835,8 @@ float TetrMesh_1stOrder::tetr_h(int i)
 		);
 
 		// Check if all nodes are already loaded from other CPUs and tetrahadron is correct
-		if(vol == 0)
-			throw GCMException( GCMException::MESH_EXCEPTION, "Tetr volume is zero");
+		if(vol == 0){ *logger < tetrs[i].vert[0];*logger < tetrs[i].vert[1];*logger < tetrs[i].vert[2];*logger < tetrs[i].vert[3];
+			throw GCMException( GCMException::MESH_EXCEPTION, "Tetr volume is zero");}
 
 		for(int j = 0; j < 4; j++)
 			if(area[j] == 0)
@@ -2179,3 +2211,237 @@ void TetrMesh_1stOrder::update_current_time(float time_step)
 {
 	current_time += time_step;
 };
+
+void TetrMesh_1stOrder::load_geometry_from_file(string file_name, map<string,string> params){
+	enum TYPES {CAS, ELE, GMV, MSH, UNKNOWN};
+	string types_str[] = {"cas", "ele", "gmv", "msh"};
+	string type = params.count("type") ? params["type"] : "msh";
+	int idx = UNKNOWN;
+	for (int i = 0; i < UNKNOWN; i++)
+		if (type == types_str[i])
+		{
+			idx = i;
+			break;
+		}
+		switch (idx) {
+			// TODO add proper loaders calls
+			case CAS:
+			{
+				load_cas_file(file_name, params.count("id") ? strtol(params["id"].c_str(), NULL, 16) : -1); 
+				break;
+			}
+//			case ELE: ;
+//			case GMV: ;
+			case MSH:
+			{
+				load_msh_file(const_cast<char*>(file_name.c_str()));
+				break;
+			}
+			default: throw GCMException(GCMException::UNIMPLEMENTED_EXCEPTION, "Type "+type+" is not supported");                   
+	}
+}
+
+void TetrMesh_1stOrder::load_cas_file(string file_name, int zone_id) {
+	// TODO get rid of this awesome macro
+	#define go_to_end_of_section(f) \
+	do { \
+		char c = 0; \
+		int flag = 1; \
+		while (f.good()) \
+		{ \
+			f >> std::dec >> c; \
+			if (c == '(') \
+				flag++; \
+			else \
+				if (c == ')') \
+					if (!(--flag)) \
+						break; \
+		} \
+		assert(c == ')'); \
+	} while(0) 
+
+	#define check_input(f) \
+	do { \
+		if (f.eof() || f.fail() || f.bad()) \
+			throw GCMException(GCMException::INPUT_EXCEPTION, "Input file is corrupted.");\
+	} while (0)
+
+	fstream f;
+     
+	*logger < "Reading geometry from case file";
+	f.open(file_name.c_str());
+        
+	if (zone_id < 0)
+		throw GCMException(GCMException::CONFIG_EXCEPTION, "Invalid zone id");
+ 
+	char c;
+	int section, zoneid, fidx, lidx, type, dim;
+	int tetrsf = -1, tetrsl = -1;
+	int w[5];
+	int x;
+	vector< set<int> > tetr_vertices;
+	float *tmp_nodes;
+	int *new_nums;
+	
+	while (f.good())
+	{
+		f >> std::dec >> c;
+		if (f.eof())
+			break;
+		if (c == '(')
+		{
+			f >> std::dec >> section;
+			switch (section)
+			{
+				// ND
+				case 2: 
+					f >> std::dec >> dim;
+					check_input(f);
+					assert(dim == 3);
+					go_to_end_of_section(f);
+					break;
+				// NODE
+				case  10:
+					f >> std::dec >> c;
+					check_input(f);
+					assert(c == '(');
+					f >>  std::hex >> zoneid >> fidx >> lidx >> std::dec >> type >> dim;
+					check_input(f);
+					// FIXME according to documentation type is 1
+					//assert(type == 1); 
+					assert(dim == 3);
+					go_to_end_of_section(f);
+					if (!zoneid)
+					{
+						tmp_nodes = new float[3*(lidx-fidx+1)];
+						new_nums = new int[lidx-fidx+1];
+						for (int q = fidx; q <= lidx; q++)
+							new_nums[q-fidx] = -1;
+						*logger << "Allocted memory for " << (lidx-fidx+1) < " nodes";
+					}
+					else
+					{
+						f >> std::dec >> c;
+						check_input(f);
+						assert(c == '(');
+						for (int k = fidx; k <= lidx; k++)
+						{
+							f >> tmp_nodes[3*(k-fidx)] >> tmp_nodes[3*(k-fidx)+1] >> tmp_nodes[3*(k-fidx)+2];
+//							*logger << "NODE " << tmp_nodes[3*(k-fidx)] << " " << " " << tmp_nodes[3*(k-fidx)+1] << " " < tmp_nodes[3*(k-fidx)+2];
+							check_input(f);
+						}
+						go_to_end_of_section(f);						
+					}
+					go_to_end_of_section(f);
+					break;
+				// CELL
+				case 12:
+				{
+					f >> std::dec >> c;
+					check_input(f);
+					assert(c == '(');
+					// FIXME we ignore type and element-type since it's not clear
+					// if this params are mandatory					
+					f >> std::hex >> zoneid >> fidx >> lidx;					
+					check_input(f);
+					if (zone_id == zoneid)
+					{
+						tetrsf = fidx;
+						tetrsl = lidx;
+						tetr_vertices.reserve(lidx-fidx+1);
+						for (int k = fidx; k <= lidx; k++)
+						{
+							tetr_vertices.push_back(set<int>());
+						}
+						*logger << "Created " << tetr_vertices.size() << " empty tetrs for zone " < zoneid;
+					}
+					go_to_end_of_section(f);
+					// FIXME we do not support cellls' body yet
+					go_to_end_of_section(f);
+					break;
+				}
+				// FACES
+				case 13:
+					f >> std::dec >> c;
+					check_input(f);
+					assert(c == '(');
+					// FIXME we ignore type and element-type since it's not clear
+					// if this params are mandatory						
+					f >> std::hex >> zoneid >> fidx >> lidx;					
+					check_input(f);
+					go_to_end_of_section(f);
+					if (zoneid)
+					{
+						f >> std::dec >> c;
+						check_input(f);
+						assert(c == '(');
+						for (int k = fidx; k <= lidx; k++)
+						{
+							f >> std::hex >> w[0] >> w[1] >> w[2] >> w[3] >> w[4];
+							check_input(f);
+//							*logger << "FACE " << w[0] << " " << " " << w[1] << " " << w[2] << " " << w[3] << " " < w[4];
+							for (int l = 3; l <= 4; l++ )
+								if ((w[l] >= tetrsf) && (w[l] <= tetrsl))
+									for (int q = 0; q < 3; q++)
+									{
+										tetr_vertices[w[l]-tetrsf].insert(w[q]);
+									}
+						}
+						go_to_end_of_section(f);
+					}
+					go_to_end_of_section(f);
+					break;					
+				default:
+					go_to_end_of_section(f);
+			}
+		}
+		else
+		{
+			throw GCMException(GCMException::INPUT_EXCEPTION, "Unexpected symbol found: "+c);
+		}
+	}
+	
+	
+	int s = 0;
+	for (int i = 0; i < tetrsl-tetrsf+1; i++)
+	{
+		if (tetr_vertices[i].size() != 4)
+			throw GCMException(GCMException::INPUT_EXCEPTION, "Not all vertices read");
+		Tetrahedron_1st_order tetr;
+		tetr.local_num = i;
+		set<int>::iterator iter;
+		int q = 0;
+		for (iter = tetr_vertices[i].begin(); iter != tetr_vertices[i].end(); iter++)
+		{
+			int n = (*iter)-1;
+//			*logger << "Processing verticle " < n;
+			if (new_nums[n] == -1)
+			{
+				new_nums[n] = s;
+				ElasticNode node;
+				memcpy(node.coords, tmp_nodes+3*n, 3*sizeof(float));
+				node.local_num = s;
+				node.elements = NULL;
+				node.contact_data = NULL;
+				node.local_basis = NULL;
+				node.border_type = INNER;
+				node.contact_type = FREE;
+				node.volume_calculator = NULL;
+				node.border_condition = NULL;
+				node.contact_condition = NULL;
+				node.placement_type = LOCAL;
+				nodes.push_back(node);
+				s++;
+			}
+			tetr.vert[q++] = new_nums[n];
+		}
+		tetrs.push_back(tetr);
+	}
+	
+	tetr_vertices.clear();
+	delete[] tmp_nodes;
+	delete[] new_nums;
+	f.close();
+	*logger << "Loaded " << nodes.size() < " nodes";
+	*logger << "Loaded " << tetrs.size() < " tetrs";
+}

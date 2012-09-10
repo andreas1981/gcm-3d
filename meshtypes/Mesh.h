@@ -4,11 +4,13 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <map>
 #include <cstring>
 
 using std::string;
 using std::vector;
 using std::ifstream;
+using std::map;
 
 #include "../datatypes/MeshOutline.h"
 #include "../rheotypes/RheologyCalculator.h"
@@ -28,6 +30,7 @@ public:
 	virtual float get_max_possible_tau() = 0;
 	virtual int log_mesh_stats() = 0;
 	virtual void translate(float x, float y, float z) = 0;
+	virtual void load_geometry_from_file(string file_name, map<string, string> params);
 
 	int zone_num; // TODO do we really use it?
 	int proc_num;

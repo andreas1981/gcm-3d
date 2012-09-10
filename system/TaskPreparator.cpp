@@ -248,8 +248,16 @@ int TaskPreparator::load_task( string task_file, string zones_file, string data_
 				if(meshpath[0] != '/')
 					meshpath = data_dir + meshpath;
 
-				if ( new_mesh->load_msh_file( const_cast<char*>( meshpath.c_str() ) ) < 0 )
-					throw GCMException(GCMException::CONFIG_EXCEPTION, "Can not open mesh file");
+				// get all attributes 
+				map<string, string> attrs;
+				attrs.clear();
+				TiXmlAttribute *attr = ezone->FirstAttribute();
+				while (attr){
+					attrs[attr->Name()] = attr->Value();
+					attr = attr->Next();
+				}
+				// TODO add throw statements to all loaders
+				new_mesh->load_geometry_from_file(meshpath, attrs);
 
 				GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis* new_nm 
 								= new GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis();
@@ -281,7 +289,7 @@ int TaskPreparator::load_task( string task_file, string zones_file, string data_
 
 		emesh = emesh->NextSiblingElement( "mesh" );
 	}
-			
+	
 	// Read rheology
 	TiXmlElement* erheo = etask->FirstChildElement( "rheology" );
 	while( erheo )

@@ -2,10 +2,14 @@
 #define _GCM_TETR_MESH_1ST_ORDER_H  1
 
 #include <algorithm>
+#include <map>
+#include <set>
 #include <gsl/gsl_linalg.h>
 
 using std::sort;
 using std::unique;
+using std::map;
+using std::set;
 
 #include "TetrMesh.h"
 #include "../datatypes/Triangle.h"
@@ -23,6 +27,8 @@ public:
 
 //	void attach_data_bus(DataBus* new_data_bus);
 
+	void load_geometry_from_file(string file_name, map<string,string> params);          
+	void load_cas_file(string file_name, int zone_id);
 	int load_msh_file(char* file_name);
 	int load_node_ele_files(char* node_file_name, char* ele_file_name);
 	int load_gmv_file(char* file_name);
@@ -75,7 +81,7 @@ public:
 	int proceed_rheology();
 	void calc_destruction_criterias();
 	void clear_data();
-	void clear_contact_state();
+	void clear_contact_state();        
 
 private:
 	int check_triangle_to_be_border(int v1, int v2, int v3, int tetr_vert, float step_h);

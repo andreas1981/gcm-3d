@@ -33,3 +33,7 @@ float Mesh::get_current_time()
 {
 	return current_time;
 };
+
+void Mesh::load_geometry_from_file(string file_name, map<string,string> params){
+	throw GCMException(GCMException::UNIMPLEMENTED_EXCEPTION, "Method is not implemented yet");
+}
