@@ -11,3 +11,5 @@ gcm.log
 */snap_volume_*
 snap_volume_*
 build/*
+.project
+.cproject
