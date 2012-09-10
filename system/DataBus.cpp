@@ -8,7 +8,7 @@ void error_handler_function(MPI::Comm& comm, int* error_code, ...)
 	
 	error_string[len] = 0;
 	
-	throw new GCMException(GCMException::MPI_EXCEPTION, error_string);
+	throw GCMException(GCMException::MPI_EXCEPTION, error_string);
 }
 
 DataBus::DataBus()

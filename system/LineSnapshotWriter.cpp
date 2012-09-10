@@ -150,13 +150,13 @@ void LineSnapshotWriter::parseArgs(int argc, char **argv)
 				break;
 			case 'F':
 				if (sscanf(optarg, "%f,%f,%f", from, from+1, from+2) != 3)
-					throw new GCMException(GCMException::CONFIG_EXCEPTION);
+					throw GCMException(GCMException::CONFIG_EXCEPTION);
 				for (int i = 0; i < 3; i++)
 					fromr[i] = from[i];
 				break;
 			case 'T':
 				if (sscanf(optarg, "%f,%f,%f", to, to+1, to+2) != 3)
-					throw new GCMException(GCMException::CONFIG_EXCEPTION);
+					throw GCMException(GCMException::CONFIG_EXCEPTION);
 				break;
 			case 'H':
 				threshold = atof(optarg);
