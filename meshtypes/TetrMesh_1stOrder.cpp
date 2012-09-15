@@ -114,13 +114,13 @@ int TetrMesh_1stOrder::pre_process_mesh()
 	// Case 1 - node has no connections at all
 	for(int i = 0; i < nodes.size(); i++)
 		if( (nodes[i].elements)->size() == 0 )
-			nodes[i].placement_type = UNUSED;
+			nodes[i].setUsed (false);
 
 	// Case 2 - remote ones that have connections only with remote ones
 	for(int i = 0; i < nodes.size(); i++)
 	{
 		// If node is remote
-		if(nodes[i].placement_type == REMOTE)
+		if(nodes[i].isRemote ())
 		{
 			int count = 0;
 			// Check tetrahedrons it is a member of
@@ -130,13 +130,13 @@ int TetrMesh_1stOrder::pre_process_mesh()
 				for(int k = 0; k < 4; k++)
 				{
 					// If it is local - count++
-					if(nodes[tetrs[nodes[i].elements->at(j)].vert[k]].placement_type == LOCAL) { count++; }
+					if(nodes[tetrs[nodes[i].elements->at(j)].vert[k]].isLocal ()) { count++; }
 				}
 			}
 			// If remote node is NOT connected with at least one local - it is unused one
 			if(count == 0)
 			{
-				nodes[i].placement_type = UNUSED;
+				nodes[i].setUsed (false);
 			}
 		}
 	}
@@ -151,10 +151,10 @@ int TetrMesh_1stOrder::pre_process_mesh()
 	// Check border using solid angle comparation with 4*PI
 	for(int i = 0; i < nodes.size(); i++)
 	{
-		if( nodes[i].placement_type == LOCAL )
+		if( nodes[i].isLocal ())
 		{
 			solid_angle = 0;
-			nodes[i].border_type == INNER;
+			!nodes[i].isBorder ();//Why do we need it??
 			for(int j = 0; j < nodes[i].elements->size(); j++)
 			{
 				ftmp = get_solid_angle(i, nodes[i].elements->at(j));
@@ -162,7 +162,7 @@ int TetrMesh_1stOrder::pre_process_mesh()
 				solid_angle += ftmp;
 			}
 			if( (4 * qm_engine.PI - solid_angle) > qm_engine.PI / 100 ) { // TODO avoid magick number
-				nodes[i].border_type = BORDER;
+				nodes[i].setIsBorder (true);
 				nodes[i].contact_data = (contact_state*) malloc(sizeof(contact_state));
 				clear_contact_data(&nodes[i]);
 			}
@@ -202,7 +202,7 @@ int TetrMesh_1stOrder::pre_process_mesh()
 	// Check all nodes
 	for(int i = 0; i < nodes.size(); i++)
 	{
-		if(nodes[i].border_type == BORDER) {
+		if(nodes[i].isBorder ()) {
 
 			find_border_node_normal(i, &normal[0], &normal[1], &normal[2], step_h);
 
@@ -257,8 +257,8 @@ int TetrMesh_1stOrder::check_triangle_to_be_border(int vert1, int vert2, int ver
 	int v2 = vert2;
 	int v3 = vert3;
 
-	if( (nodes[v1].border_type != BORDER) || (nodes[v2].border_type != BORDER) || (nodes[v3].border_type != BORDER)
-		|| (nodes[v1].placement_type != LOCAL ) || (nodes[v2].placement_type != LOCAL ) || (nodes[v3].placement_type != LOCAL ) )
+	if( (!nodes[v1].isBorder ()) || (!nodes[v2].isBorder ()) || (!nodes[v3].isBorder ())
+		|| (!nodes[v1].isLocal () ) || (!nodes[v2].isLocal ()) || (!nodes[v3].isLocal ()) )
 		return -1;
 
 	Triangle new_triangle;
@@ -484,8 +484,9 @@ int TetrMesh_1stOrder::load_node_ele_files(char* node_file_name, char* ele_file_
 		new_node.elements = NULL;
 		new_node.contact_data = NULL;
 		new_node.local_basis = NULL;
-		new_node.border_type = INNER;
-		new_node.contact_type = FREE;
+		new_node.setIsBorder (false);
+		new_node.addOwner (GCM);
+		new_node.setContactType (Free);
 
 		node_infile >> new_node.local_num;
 		if(new_node.local_num > 0)
@@ -493,9 +494,10 @@ int TetrMesh_1stOrder::load_node_ele_files(char* node_file_name, char* ele_file_
 			new_node.local_num--;
 			new_node.absolute_num = new_node.local_num;
 			node_infile >> new_node.coords[0] >> new_node.coords[1] >> new_node.coords[2];
-			new_node.placement_type = LOCAL;
-			new_node.border_type = INNER;
-			new_node.contact_type = FREE;
+			new_node.setPlacement (Local);
+			new_node.setIsBorder (false);
+			new_node.addOwner (GCM);
+			new_node.setContactType (Free);
 			new_node.contact_data = NULL;
 			new_node.local_basis = NULL;
 			// TODO set other values
@@ -575,8 +577,9 @@ int TetrMesh_1stOrder::load_gmv_file(char* file_name)
 		new_node.elements = NULL;
 		new_node.contact_data = NULL;
 		new_node.local_basis = NULL;
-		new_node.border_type = INNER;
-		new_node.contact_type = FREE;
+		new_node.setIsBorder (false);
+		new_node.addOwner (GCM);
+		new_node.setContactType (Free);
 
 		new_node.local_num = count - 1;
 		new_node.absolute_num = new_node.local_num;
@@ -666,8 +669,10 @@ int TetrMesh_1stOrder::load_msh_file(char* file_name)
 		new_node.elements = NULL;
 		new_node.contact_data = NULL;
 		new_node.local_basis = NULL;
-		new_node.border_type = INNER;
-		new_node.contact_type = FREE;
+		new_node.setIsBorder (false);
+		new_node.addOwner (GCM);
+		new_node.setContactType (Free);
+		new_node.setUsed (true);
 		new_node.volume_calculator = NULL;
 		new_node.border_condition = NULL;
 		new_node.contact_condition = NULL;
@@ -681,7 +686,7 @@ int TetrMesh_1stOrder::load_msh_file(char* file_name)
 			new_node.absolute_num = new_node.local_num;
 			new_node.local_zone_num = zone_num;
 			infile >> new_node.coords[0] >> new_node.coords[1] >> new_node.coords[2];
-			new_node.placement_type = LOCAL;
+			new_node.setPlacement (Local);
 			// TODO set other values
 		}
 		else if(new_node.local_num < 0)
@@ -692,7 +697,7 @@ int TetrMesh_1stOrder::load_msh_file(char* file_name)
 			new_node.local_zone_num = zone_num;
 			infile >> new_node.remote_zone_num >> new_node.remote_num;
 			new_node.remote_num--;
-			new_node.placement_type = REMOTE;
+			new_node.setPlacement (Remote);
 			// TODO set other values
 		}
 		else
@@ -840,10 +845,10 @@ void TetrMesh_1stOrder::calc_min_h()
 	// Go through tetrahedrons
 	for(int i = 0; i < tetrs.size(); i++)
 	{
-		if ( (nodes[tetrs[i].vert[0]].placement_type == UNUSED) 
-			|| (nodes[tetrs[i].vert[1]].placement_type == UNUSED) 
-			|| (nodes[tetrs[i].vert[2]].placement_type == UNUSED) 
-			|| (nodes[tetrs[i].vert[3]].placement_type == UNUSED) )
+		if ( (!nodes[tetrs[i].vert[0]].isUsed ())
+			|| (!nodes[tetrs[i].vert[1]].isUsed ())
+			|| (!nodes[tetrs[i].vert[2]].isUsed ())
+			|| (!nodes[tetrs[i].vert[3]].isUsed ()) )
 			continue;
 
 		// Get current h
@@ -868,10 +873,10 @@ float TetrMesh_1stOrder::get_max_h()
 	// Go through tetrahedrons
 	for(int i = 0; i < tetrs.size(); i++)
 	{
-		if ( (nodes[tetrs[i].vert[0]].placement_type == UNUSED) 
-			|| (nodes[tetrs[i].vert[1]].placement_type == UNUSED) 
-			|| (nodes[tetrs[i].vert[2]].placement_type == UNUSED) 
-			|| (nodes[tetrs[i].vert[3]].placement_type == UNUSED) )
+		if ( (!nodes[tetrs[i].vert[0]].isUsed ())
+			|| (!nodes[tetrs[i].vert[1]].isUsed ())
+			|| (!nodes[tetrs[i].vert[2]].isUsed ())
+			|| (!nodes[tetrs[i].vert[3]].isUsed ()) )
 			continue;
 
 		// Get current h
@@ -906,10 +911,10 @@ int TetrMesh_1stOrder::log_mesh_stats()
 
 	for(int i = 0; i < tetrs.size(); i++)
 	{
-		if ( (nodes[tetrs[i].vert[0]].placement_type == UNUSED) 
-			|| (nodes[tetrs[i].vert[1]].placement_type == UNUSED) 
-			|| (nodes[tetrs[i].vert[2]].placement_type == UNUSED) 
-			|| (nodes[tetrs[i].vert[3]].placement_type == UNUSED) )
+		if ( (!nodes[tetrs[i].vert[0]].isUsed ())
+			|| (!nodes[tetrs[i].vert[1]].isUsed ())
+			|| (!nodes[tetrs[i].vert[2]].isUsed ())
+			|| (!nodes[tetrs[i].vert[3]].isUsed ()) )
 			continue;
 
 		// Get current h
@@ -1449,7 +1454,7 @@ Tetrahedron_1st_order* TetrMesh_1stOrder::find_border_cross(ElasticNode* node, f
 			int border_verts_count = 0;
 			int border_verts[3];
 			for(int j = 0; j < 4; j++)
-				if( nodes[ tetrs[checking[i]].vert[j] ].border_type == BORDER ) {
+				if( nodes[ tetrs[checking[i]].vert[j] ].isBorder ()) {
 					border_verts[ border_verts_count ] = tetrs[checking[i]].vert[j];
 					border_verts_count++;
 				}
@@ -1663,7 +1668,7 @@ float TetrMesh_1stOrder::get_max_possible_tau()
 
 	for(int i = 0; i < nodes.size(); i++)
 	{
-		if(nodes[i].placement_type == LOCAL)
+		if(nodes[i].isLocal ())
 		{
 			l = method->get_max_lambda(&nodes[i], this);
 			if(l < 0) {
@@ -1681,9 +1686,9 @@ int TetrMesh_1stOrder::do_next_part_step(float tau, int stage)
 	*logger < "Processing border nodes";
 	for(int i = 0; i < nodes.size(); i++)
 	{
-		if(nodes[i].placement_type == LOCAL)
+		if(nodes[i].isLocal ())
 		{
-			if( nodes[i].border_type == BORDER )
+			if( nodes[i].isBorder () )
 				method->do_next_part_step(&nodes[i], &new_nodes[i], tau, stage, this);
 		}
 	}
@@ -1691,16 +1696,16 @@ int TetrMesh_1stOrder::do_next_part_step(float tau, int stage)
 	*logger < "Processing inner nodes";
 	for(int i = 0; i < nodes.size(); i++)
 	{
-		if(nodes[i].placement_type == LOCAL)
+		if(nodes[i].isLocal ())
 		{
-			if( nodes[i].border_type == INNER )
+			if( nodes[i].isInner ())
 				method->do_next_part_step(&nodes[i], &new_nodes[i], tau, stage, this);
 		}
 	}
 	// Copy values
 	for(int i = 0; i < nodes.size(); i++)
 	{
-		if(nodes[i].placement_type == LOCAL)
+		if(nodes[i].isLocal ())
 		{
 			for(int j = 0; j < 9; j++)
 				nodes[i].values[j] = new_nodes[i].values[j];
@@ -1713,7 +1718,7 @@ void TetrMesh_1stOrder::move_coords(float tau)
 {
 	for(int i = 0; i < nodes.size(); i++)
 	{
-		if(nodes[i].placement_type == LOCAL)
+		if(nodes[i].isLocal ())
 		{
 			for(int j = 0; j < 3; j++)
 			{
@@ -1734,7 +1739,7 @@ void TetrMesh_1stOrder::calc_destruction_criterias()
 {
 	for(int i = 0; i < nodes.size(); i++)
 	{
-		if(nodes[i].placement_type == LOCAL)
+		if(nodes[i].isLocal ())
 		{
 			nodes[i].max_compression = nodes[i].max_tension = nodes[i].max_shear = nodes[i].max_deviator = 0;
 
@@ -1778,7 +1783,7 @@ int TetrMesh_1stOrder::proceed_rheology()
 	// TODO if rheology is void we can skip this step
 	for(int i = 0; i < nodes.size(); i++)
 	{
-		if(nodes[i].placement_type == LOCAL)
+		if(nodes[i].isLocal ())
 		{
 			rheology->do_calc(&nodes[i], &nodes[i]);
 		}
@@ -1790,7 +1795,7 @@ void TetrMesh_1stOrder::check_stresses(float tau)
 {
 	for(int i = 0; i < nodes.size(); i++)
 	{
-		if(nodes[i].placement_type == LOCAL)
+		if(nodes[i].isLocal ())
 		{
 // FIXME
 stresser->set_current_stress(&nodes[i], &nodes[i], tau);
@@ -1810,7 +1815,7 @@ int TetrMesh_1stOrder::run_mesh_filter()
 	for(int i = 0; i < nodes.size(); i++)
 	{
 		// Clear only local AND border (inner nodes have not caused problems till now)
-		if( (nodes[i].placement_type == LOCAL) && (nodes[i].border_type == BORDER) )
+		if( (nodes[i].isLocal ()) && (nodes[i].isBorder ()) )
 		{
 			// For each variable
 			for(int j = 0; j < 9; j++)

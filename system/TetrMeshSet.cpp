@@ -241,7 +241,7 @@ void TetrMeshSet::sync_remote_data()
 
 		for(int i = 0; i < local_meshes[l]->nodes.size(); i++)
 		{
-			if( (local_meshes[l]->nodes[i].border_type == BORDER) 
+			if( (local_meshes[l]->nodes[i].isBorder ())
 				&& (local_meshes[l]->nodes[i].contact_data->axis_plus[0] != -1) )
 			{
 //				*logger << "Looking for virt node " < local_meshes[l]->nodes[i].contact_data->axis_plus[0];
@@ -257,9 +257,10 @@ void TetrMeshSet::sync_remote_data()
 				if( origin_index < 0 )
 					throw GCMException( GCMException::COLLISION_EXCEPTION, "Can't find virt node origin");
 
-				vnode->placement_type = LOCAL;
-				vnode->border_type = BORDER;
-				vnode->contact_type = IN_CONTACT;
+				vnode->setPlacement (Local);
+				vnode->setIsBorder (true);
+				vnode->addOwner (GCM);
+				vnode->setContactType (InContact);
 				vnode->elements = (vnode->mesh->nodes)[origin_index].elements;
 				vnode->border_elements = (vnode->mesh->nodes)[origin_index].border_elements;
 				vnode->local_num = (vnode->mesh->nodes)[origin_index].local_num;		

@@ -157,7 +157,7 @@ void CollisionDetectorForLayers::process_mesh(vector<int> &nodes_vector, TetrMes
 	for(int i = 0; i < nodes_vector.size(); i++)
 	{
 		node = &(current_mesh->nodes).at( nodes_vector[i] );
-		if( node->border_type == BORDER )
+		if( node->isBorder ())
 		{
 			current_mesh->clear_contact_data( node );
 
@@ -171,14 +171,14 @@ void CollisionDetectorForLayers::process_mesh(vector<int> &nodes_vector, TetrMes
 			{
 				if( fabs( node->coords[shift_direction] - outline.min_coords[shift_direction] ) < h )
 				{
-					node->contact_type = IN_CONTACT;
+					node->setContactType (InContact);
 					// We always set 'axis_plus[0]' (!!!) because the first axis goes along _outer_ normal
 					node->contact_data->axis_plus[0] = virt_nodes.size();
 					add_node_by_local_num(other_mesh, nodes_vector[i] + index_shift, virt_nodes);
 				}
 				else if( fabs( node->coords[shift_direction] - outline.max_coords[shift_direction] ) < h )
 				{
-					node->contact_type = IN_CONTACT;
+					node->setContactType (InContact);
 					node->contact_data->axis_plus[0] = virt_nodes.size();
 					add_node_by_local_num(other_mesh, nodes_vector[i] - index_shift, virt_nodes);
 				}

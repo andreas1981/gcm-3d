@@ -65,7 +65,7 @@ int DataBus::sync_nodes()
 	{
 		TetrMesh_1stOrder* mesh = mesh_set->get_local_mesh(i);
 		for (int j = 0; j < mesh->nodes.size(); j++)
-			if (mesh->nodes[j].placement_type == REMOTE)
+			if (mesh->nodes[j].isRemote ())
 			{
 				int dest = get_proc_for_zone(mesh->nodes[j].remote_zone_num);
 				// avoid sending self-requests
@@ -315,7 +315,7 @@ void DataBus::create_custom_types() {
 	{
 		TetrMesh_1stOrder *mesh = mesh_set->get_local_mesh(i);
 		for (int j = 0; j < mesh->nodes.size(); j++)
-			if (mesh->nodes[j].placement_type == REMOTE &&
+			if (mesh->nodes[j].isRemote () &&
 					get_proc_for_zone(mesh->nodes[j].remote_zone_num) != proc_num)
 			{
 				int local_zone_num = mesh->nodes[j].local_zone_num;

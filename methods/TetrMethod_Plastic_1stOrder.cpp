@@ -79,7 +79,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::prepare_node(ElasticNod
 	if(debug)
 		*logger < "DEBUG 1";
 
-	if (cur_node->border_type == BORDER)
+	if (cur_node->isBorder ())
 		mesh->find_border_node_normal(cur_node->local_num, &outer_normal[0], &outer_normal[1], &outer_normal[2]);
 
 	if(debug)
@@ -122,7 +122,7 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::log_node_diagnostics(E
 	*logger < "VALUES: ";
 	for(int j = 0; j < 9; j++)
 		*logger << "Value[" << j << "] = " < cur_node->values[j];
-	if( cur_node->border_type == BORDER ) {
+	if( cur_node->isBorder ()) {
 		*logger < "BORDER";
 		if( ( cur_node->contact_data != NULL ) && ( cur_node->contact_data->axis_plus[stage] == -1 ) && ( cur_node->contact_data->axis_minus[stage] == -1 ) ) {
 			*logger < "BORDER WITHOUT CONTACT";
@@ -264,7 +264,7 @@ void GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::do_next_part_step(Elas
 
 		// Special cases - smth bad happens
 		// Node is not border at all
-		if ( cur_node->border_type != BORDER )
+		if ( !cur_node->isBorder ())
 		{
 			log_node_diagnostics(cur_node, stage, outer_normal, mesh, basis_num, elastic_matrix3d, time_step, previous_nodes, ppoint_num, inner, dksi);
 			throw GCMException(GCMException::METHOD_EXCEPTION, "Border node is not marked as border");
@@ -571,7 +571,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_
 //for(int z = 0; z < 3; z++)
 	//*logger < cur_node->coords[z];
 //				if( dksi[i] < 0 )
-				if( ! ( (cur_node->border_type == BORDER) && (stage == 0) && (dksi[i] > 0) ) )
+				if( ! ( (cur_node->isBorder ()) && (stage == 0) && (dksi[i] > 0) ) )
 					for(int z = 0; z < 3; z++) {
 //						dx[z] = - fafa * safe_direction[z];
 						dx[z] = tetr_center[z] - (mesh->nodes).at(cur_node->local_num).coords[z];
@@ -615,7 +615,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_
 				previous_nodes[count] = *cur_node;
 				inner[i] = true;
 			}
-			else if ( (cur_node->border_type == INNER) /*|| (stage != 0)*/ )
+			else if ( (cur_node->isInner ()) /*|| (stage != 0)*/ )
 			{
 *logger < "We need new method here!";
 *logger << cur_node->local_num << " " << cur_node->coords[0] << " " << cur_node->coords[1] << " " < cur_node->coords[2];
@@ -697,7 +697,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::create_random_axis(Elas
 	// Outer normal at current point
 	float outer_normal[3];
 
-	if(cur_node->border_type == INNER) {
+	if(cur_node->isInner ()) {
 
 		// TODO think about limits - PI or 2*PI
 		float phi = (rand() % 360) * 2 * PI / 360;
@@ -709,7 +709,7 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::create_random_axis(Elas
 		// FIXME
 		create_E_matrix(cur_node->local_num);
 
-	} else if (cur_node->border_type == BORDER) {
+	} else if (cur_node->isBorder ()) {
 
 		mesh->find_border_node_normal(cur_node->local_num, &outer_normal[0], &outer_normal[1], &outer_normal[2]);
 
