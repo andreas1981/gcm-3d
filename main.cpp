@@ -97,10 +97,12 @@ int main(int argc, char **argv)
 	if(data_dir[data_dir.length()-1] != '/')
 		data_dir += '/';
 
-	// Number of snapshots in task
-	int snap_num = -1;
+	// Total number of steps to take
+	int totalStepNum = -1;
 	// Number of steps between snapshots
-	int step_per_snap = -1;
+	int snapStepInterval = -1;
+	// Time interval between snapshots
+	float snapTimeInterval = 0.0;
 	try
 	{
 		// Create task preparator
@@ -111,7 +113,12 @@ int main(int argc, char **argv)
 		*logger << "Data dir: " < data_dir;
 
 		// Load real task info
-		task_prep->load_task( task_file, zones_info_file, data_dir, &snap_num, &step_per_snap);
+		task_prep->load_task (
+				task_file, zones_info_file, data_dir,
+				&totalStepNum, &snapStepInterval, &snapTimeInterval);
+		*logger << "Take " << totalStepNum << " step(s), take snapshot every ";
+		if (snapStepInterval > 0) *logger << snapStepInterval < " step(s)";
+		else *logger << snapTimeInterval < " time units";
 		
 		// create custom types for fast sync
 		data_bus->create_custom_types();
@@ -130,23 +137,33 @@ int main(int argc, char **argv)
 			sw[i]->dump(0);
 
 		// Do calculation
+		float snapStartTime;
 		float cur_time;
-		for(int i = 1; i <= snap_num; i++)
+		int nextSnapInd = 1;
+		for(int stepInd = 1; stepInd <= totalStepNum; stepInd++)
 		{
 			if( (cur_time = mesh_set->get_current_time()) < 0)
 				return -1;
-			*logger << "Started step " << i << ". Time = " << cur_time < ".";
+			if (1 == stepInd) snapStartTime = cur_time;
+			*logger << "Started step " << stepInd << ". Time = " << cur_time < ".";
 
-			for(int j = 0; j < step_per_snap; j++)
-				if (mesh_set->do_next_step() < 0)
-					return -1;
-		
-			for (int j = 0; j < sw.size(); j++)
-				sw[j]->dump(i);
+			if (mesh_set->do_next_step() < 0)
+				return -1;
 
 			if( (cur_time = mesh_set->get_current_time()) < 0)
 				return -1;
-			*logger << "Finished step " << i << ". Time = " << cur_time < ".";
+
+			if ((snapStepInterval > 0 && 0 == stepInd % snapStepInterval)
+					|| (snapTimeInterval > 0.0 && (cur_time - snapStartTime >= (nextSnapInd - 0.05) * snapTimeInterval)))
+			{
+				//Saving snapshots
+				for (int j = 0; j < sw.size(); j++)
+					sw[j]->dump (nextSnapInd);
+
+				nextSnapInd++;
+			}
+
+			*logger << "Finished step " << stepInd << ". Time = " << cur_time < ".";
 		}
 
 		// TODO: delete all objects?

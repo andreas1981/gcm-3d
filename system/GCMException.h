@@ -24,5 +24,6 @@ public:
 	static const int MESH_EXCEPTION = 4;
 	static const int SNAP_EXCEPTION = 5;
 	static const int COLLISION_EXCEPTION = 6;
+	static const int CONFIG_VERSION_MISSMATCH_EXCEPTION = 7;
 };
 #endif

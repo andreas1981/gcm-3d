@@ -101,6 +101,25 @@ int TaskPreparator::load_zones_info(string zones_file, vector<int>* zones_info)
 int TaskPreparator::load_task( string task_file, string zones_file, string data_dir, 
 				int* snap_num, int* steps_per_snap)
 {
+	int totalStepNum = -1;
+	float snapTimeInterval = 0.0;
+	int res = load_task (
+			task_file, zones_file, data_dir,
+			&totalStepNum, steps_per_snap, &snapTimeInterval);
+	if (snapTimeInterval > 0)
+	{
+		throw GCMException (
+				GCMException::CONFIG_VERSION_MISSMATCH_EXCEPTION,
+				"Old method load_task version doesn't support new style config");
+	}
+	if (totalStepNum >= 0) *snap_num = totalStepNum / (*steps_per_snap);
+	return res;
+}
+
+int TaskPreparator::load_task (
+			string task_file, string zones_file, string data_dir,
+			int* pTotalStepNum, int* pSnapStepInterval, float* pSnapTimeInterval)
+{
 	*logger < "Loading task from XML";
 
 	// Current process number
@@ -165,14 +184,42 @@ int TaskPreparator::load_task( string task_file, string zones_file, string data_
 		throw GCMException(GCMException::CONFIG_EXCEPTION, "Malformed task file");
 
 	// Read snapshot related information
-	int snap_num_l = atoi( etask->Attribute( "snap_num" ) );
-	int step_per_snap_l = atoi( etask->Attribute( "step_per_snap" ) );
+	int snap_num_l = etask->Attribute ("snap_num") != NULL ? atoi (etask->Attribute ("snap_num")) : 0;
+	int step_per_snap_l = etask->Attribute ("step_per_snap") != NULL ? atoi (etask->Attribute ("step_per_snap")) : 0;
+	*logger << "load_task: snap_num_l = " << snap_num_l << ", step_per_snap_l = " < step_per_snap_l;
 
-	if( snap_num_l <= 0 || step_per_snap_l <= 0 )
-		throw GCMException(GCMException::CONFIG_EXCEPTION, "Bad shapshot info");
+	int totalStepNum = etask->Attribute ("step_num") != NULL ? atoi (etask->Attribute ("step_num")) : 0;
+	float snapTimeInterval = etask->Attribute ("time_per_snap") != NULL ? atof (etask->Attribute ("time_per_snap")) : 0.0;
+	*logger << "load_task: totalStepNum = " << totalStepNum << ", snapTimeInterval = " < snapTimeInterval;
 
-	*snap_num = snap_num_l;
-	*steps_per_snap = step_per_snap_l;
+	if (((totalStepNum <= 0 && snap_num_l <= 0) || step_per_snap_l <= 0)
+			&& (totalStepNum <= 0 || snapTimeInterval <= 0))
+	{
+		throw GCMException(GCMException::CONFIG_EXCEPTION, "Bad shapshot configuration");
+	}
+	if (snapTimeInterval > 0 && step_per_snap_l > 0)
+	{
+		throw GCMException (
+				GCMException::CONFIG_EXCEPTION,
+				"Bad shapshot configuration: only one of time_per_snap and step_per_snap is allowed");
+	}
+	if (snap_num_l > 0 && totalStepNum > 0)
+	{
+		throw GCMException (
+				GCMException::CONFIG_EXCEPTION,
+				"Bad shapshot configuration: only one of snap_num and step_num is allowed");
+	}
+	if (snapTimeInterval > 0 && totalStepNum <= 0)
+	{
+		throw GCMException (
+				GCMException::CONFIG_EXCEPTION,
+				"Bad shapshot configuration: time_per_snap must be usedd with step_num only");
+	}
+
+	if (snapTimeInterval > 0) *pSnapTimeInterval = snapTimeInterval;
+	else if (step_per_snap_l > 0) *pSnapStepInterval = step_per_snap_l;
+
+	*pTotalStepNum = totalStepNum > 0 ? totalStepNum : (snap_num_l * step_per_snap_l);
 
 	// Read system related configuration
 	TiXmlElement* esystem = etask->FirstChildElement( "system" );
