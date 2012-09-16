@@ -29,8 +29,6 @@ enum EngineOwner
 #include "Basis.h"
 #include "ContactData.h"
 #include <assert.h>
-#include <signal.h>
-#include <iostream>
 
 //TODO: remove asserts from setXxx methods after some more tests
 class Node
@@ -64,16 +62,28 @@ public:
 		assert (InContact == type ? isInContact () : !isInContact ());
 	}
 
+	/**
+	 *
+	 * @return <code>true</code> if this Node is used and its placement is Local
+	 */
 	bool inline isLocal ()
 	{
 		return isUsed () && Local == (node_flags & PLACEMENT_TYPE_MASK);
 	}
 
+	/**
+	 *
+	 * @return <code>true</code> if this Node is used and its placement is Remote
+	 */
 	bool inline isRemote ()
 	{
 		return isUsed () && Remote == (node_flags & PLACEMENT_TYPE_MASK);
 	}
 
+	/**
+	 * Set node placement to specified value and also marks node as used
+	 * @param placement new node placement
+	 */
 	void inline setPlacement (PlacementType placement)
 	{
 		setUsed (true);
@@ -117,6 +127,7 @@ public:
 
 	bool inline isOwnedBy (EngineOwner owner)
 	{
+		assert (0 != node_flags & ENGINE_OWNERSHIP_MASK);//Node should be owned at least by someone
 		return 0 != (node_flags & ENGINE_OWNERSHIP_MASK & owner);
 	}
 
