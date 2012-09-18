@@ -87,7 +87,7 @@ int VTKSnapshotWriter::dump_vtk(TetrMesh_1stOrder* tetr_mesh, int snap_num)
 		la->InsertNextValue( node.la );
 		mu->InsertNextValue( node.mu );
 		rho->InsertNextValue( node.rho );
-		contact->InsertNextValue( node.contact_type );
+		contact->InsertNextValue( node.isInContact () ? 1: 0 );
 
 		maxCompression->InsertNextValue( node.max_compression );
 		maxTension->InsertNextValue( node.max_tension );

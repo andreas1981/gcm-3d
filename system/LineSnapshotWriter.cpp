@@ -43,9 +43,9 @@ void LineSnapshotWriter::dump(int snap_num)
 				float c[3];
 				if (mesh->vector_intersects_triangle(c1, c2, c3, from, dir, len, c))
 				{
-					if (!(mesh->nodes[tetr->vert[i1]].placement_type == LOCAL && 
-							mesh->nodes[tetr->vert[i2]].placement_type == LOCAL && 
-							mesh->nodes[tetr->vert[i3]].placement_type == LOCAL))
+					if (!(mesh->nodes[tetr->vert[i1]].isLocal () &&
+							mesh->nodes[tetr->vert[i2]].isLocal () &&
+							mesh->nodes[tetr->vert[i3]].isLocal ()))
 						continue;
 					bool flag = false;
 					float p = 0;

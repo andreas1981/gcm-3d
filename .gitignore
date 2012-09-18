@@ -13,3 +13,5 @@ snap_volume_*
 build/*
 .project
 .cproject
+.dep.inc
+Makefile-gcm-3d.mk

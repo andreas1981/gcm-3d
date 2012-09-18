@@ -55,7 +55,7 @@ void BruteforceCollisionDetector::find_collisions(vector<ElasticNode> &virt_node
 								local_nodes[k].coords,
 								direction, get_treshold(), new_node.coords ) )
 						{
-							( mesh1->nodes[ local_nodes[k].local_num ] ).contact_type = IN_CONTACT;
+							( mesh1->nodes[ local_nodes[k].local_num ] ).setContactType (InContact);
 							( mesh1->nodes[ local_nodes[k].local_num ] ).contact_data->axis_plus[0] 
 											= virt_nodes.size();
 
@@ -167,7 +167,7 @@ void BruteforceCollisionDetector::find_collisions(vector<ElasticNode> &virt_node
 								local_nodes[k].coords,
 								direction, get_treshold(), new_node.coords ) )
 						{
-							( loc_mesh->nodes[ local_nodes[k].local_num ] ).contact_type = IN_CONTACT;
+							( loc_mesh->nodes[ local_nodes[k].local_num ] ).setContactType (InContact);
 							( loc_mesh->nodes[ local_nodes[k].local_num ] ).contact_data->axis_plus[0] 
 											= virt_nodes.size();
 

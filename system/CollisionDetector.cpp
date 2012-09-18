@@ -51,7 +51,7 @@ void CollisionDetector::find_nodes_in_intersection(vector<ElasticNode> &nodes, M
 	for (int i = 0; i < nodes.size(); i++)
 		// FIXME
 		// only local nodes?
-		if ( (nodes[i].placement_type == LOCAL) && (nodes[i].border_type == BORDER) )
+		if ( (nodes[i].isLocal ()) && (nodes[i].isBorder ()) )
 		{
 			bool flag = true;
 			for (int j = 0; j < 3; j++)
@@ -70,7 +70,7 @@ void CollisionDetector::find_nodes_in_intersection(vector<ElasticNode> &nodes, M
 	for (int i = 0; i < nodes.size(); i++)
 		// FIXME
 		// only local nodes?
-		if ( (nodes[i].placement_type == LOCAL) && (nodes[i].border_type == BORDER) )
+		if ( (nodes[i].isLocal ()) && (nodes[i].isBorder ()) )
 		{
 			bool flag = true;
 			for (int j = 0; j < 3; j++)
@@ -178,7 +178,7 @@ void CollisionDetector::renumber_volume(vector<Tetrahedron_1st_order> &tetrs, ve
 	{
 		nodes[i].absolute_num = nodes[i].local_num;
 		nodes[i].local_num = i;
-		nodes[i].placement_type = LOCAL;
+		nodes[i].setPlacement (Local);
 	}
 
 	delete[] renum;

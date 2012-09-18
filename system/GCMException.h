@@ -20,11 +20,12 @@ public:
 	static const int SYNC_EXCEPTION = 1;
 	static const int CONFIG_EXCEPTION = 2;
 	static const int METHOD_EXCEPTION = 3;
-	static const int MATH_EXCEPTION = 7;
 	static const int MESH_EXCEPTION = 4;
 	static const int SNAP_EXCEPTION = 5;
 	static const int COLLISION_EXCEPTION = 6;
+        static const int MATH_EXCEPTION = 7;
 	static const int UNIMPLEMENTED_EXCEPTION = 8;
 	static const int INPUT_EXCEPTION = 9;
+	static const int CONFIG_VERSION_MISSMATCH_EXCEPTION = 10;
 };
 #endif
