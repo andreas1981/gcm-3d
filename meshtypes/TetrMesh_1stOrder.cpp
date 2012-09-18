@@ -2429,12 +2429,12 @@ void TetrMesh_1stOrder::load_cas_file(string file_name, int zone_id) {
 				node.elements = NULL;
 				node.contact_data = NULL;
 				node.local_basis = NULL;
-				node.border_type = INNER;
-				node.contact_type = FREE;
+				node.setIsBorder (false);
+				node.setContactType (Free);
 				node.volume_calculator = NULL;
 				node.border_condition = NULL;
 				node.contact_condition = NULL;
-				node.placement_type = LOCAL;
+				node.setPlacement (Local);
 				nodes.push_back(node);
 				s++;
 			}
