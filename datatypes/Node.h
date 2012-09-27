@@ -136,7 +136,8 @@ public:
 	{
 		node_flags |= ENGINE_OWNERSHIP_MASK & owner;
 	}
-
+protected:
+private:
 	/**
 	 * This method is only to be used to dump mesh state into a file or any other output stream
      * @return
@@ -154,8 +155,7 @@ public:
 	{
 		node_flags = flags;
 	}
-protected:
-private:
+
 	unsigned int node_flags;
 };
 
