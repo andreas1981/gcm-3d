@@ -33,6 +33,7 @@ enum EngineOwner
 //TODO: remove asserts from setXxx methods after some more tests
 class Node
 {
+	friend class VTKSnapshotWriter;
 public:
 	int local_zone_num;
 	int remote_zone_num;
@@ -134,6 +135,24 @@ public:
 	bool inline addOwner (EngineOwner owner)
 	{
 		node_flags |= ENGINE_OWNERSHIP_MASK & owner;
+	}
+
+	/**
+	 * This method is only to be used to dump mesh state into a file or any other output stream
+     * @return
+     */
+	unsigned int inline getFlags ()
+	{
+		return node_flags;
+	}
+
+	/**
+	 * This method is only supposed to be used to read mesh state from a file or any other input stream
+     * @param flags
+     */
+	void inline setFlags (unsigned int flags)
+	{
+		node_flags = flags;
 	}
 protected:
 private:

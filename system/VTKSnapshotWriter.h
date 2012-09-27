@@ -19,6 +19,7 @@ using std::stringstream;
 #include <vtkUnstructuredGridWriter.h>
 #include <vtkTetra.h>
 #include <vtkDoubleArray.h>
+#include <vtkIntArray.h>
 #include <vtkPointData.h>
 #include <vtkstd/string>
 
@@ -33,6 +34,7 @@ public:
 	~VTKSnapshotWriter();
 	string* get_snapshot_writer_type();
 	int dump_vtk(TetrMesh_1stOrder* tetr_mesh, int snap_num);
+	int dump_vtk (string fileName, TetrMesh_1stOrder* tetr_mesh, int snap_num);
 	int dump_vtk(int snap_num);
 	int dump_tetr_mesh(TetrMesh_1stOrder* tetr_mesh, int zone_num, int snap_num);
 	void dump(int snap_num);

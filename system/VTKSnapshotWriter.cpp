@@ -38,7 +38,16 @@ int VTKSnapshotWriter::dump_vtk(int snap_num)
 int VTKSnapshotWriter::dump_vtk(TetrMesh_1stOrder* tetr_mesh, int snap_num)
 {
 	int zone_num = tetr_mesh->zone_num;
+	string filename = fname;
+	Utils::replaceAll(filename, "%z", Utils::t_to_string(zone_num));
+	Utils::replaceAll(filename, "%n", Utils::t_to_string(snap_num));
+	filename = resultdir+filename;
 
+	return dump_vtk (filename, tetr_mesh, snap_num);
+}
+
+int VTKSnapshotWriter::dump_vtk (string filename, TetrMesh_1stOrder* tetr_mesh, int snap_num)
+{
 	vtkXMLUnstructuredGridWriter *xgw = vtkXMLUnstructuredGridWriter::New();
 	vtkUnstructuredGrid *g = vtkUnstructuredGrid::New();
 
@@ -51,6 +60,7 @@ int VTKSnapshotWriter::dump_vtk(TetrMesh_1stOrder* tetr_mesh, int snap_num)
 	vel->SetNumberOfComponents(3);
 	vel->SetName("velocity");
 	vtkDoubleArray *contact = vtkDoubleArray::New();
+	vtkIntArray	   *nodeFlags = vtkIntArray::New ();
 	vtkDoubleArray *sxx = vtkDoubleArray::New();
 	vtkDoubleArray *sxy = vtkDoubleArray::New();
 	vtkDoubleArray *sxz = vtkDoubleArray::New();
@@ -88,6 +98,7 @@ int VTKSnapshotWriter::dump_vtk(TetrMesh_1stOrder* tetr_mesh, int snap_num)
 		mu->InsertNextValue( node.mu );
 		rho->InsertNextValue( node.rho );
 		contact->InsertNextValue( node.isInContact () ? 1: 0 );
+		nodeFlags->InsertNextValue (node.getFlags ());
 
 		maxCompression->InsertNextValue( node.max_compression );
 		maxTension->InsertNextValue( node.max_tension );
@@ -120,6 +131,7 @@ int VTKSnapshotWriter::dump_vtk(TetrMesh_1stOrder* tetr_mesh, int snap_num)
 	mu->SetName("mu");
 	rho->SetName("rho");
 	contact->SetName("contact");
+	nodeFlags->SetName ("flags");
 
 	maxCompression->SetName("maxCompression");
 	maxTension->SetName("maxTension");
@@ -141,6 +153,7 @@ int VTKSnapshotWriter::dump_vtk(TetrMesh_1stOrder* tetr_mesh, int snap_num)
 	g->GetPointData()->AddArray(mu);
 	g->GetPointData()->AddArray(rho);
 	g->GetPointData()->AddArray(contact);
+	g->GetPointData ()->AddArray (nodeFlags);
 
 	g->GetPointData()->AddArray(maxCompression);
 	g->GetPointData()->AddArray(maxTension);
@@ -162,6 +175,7 @@ int VTKSnapshotWriter::dump_vtk(TetrMesh_1stOrder* tetr_mesh, int snap_num)
 	mu->Delete();
 	rho->Delete();
 	contact->Delete();
+	nodeFlags->Delete ();
 
 	maxCompression->Delete();
 	maxTension->Delete();
@@ -172,11 +186,6 @@ int VTKSnapshotWriter::dump_vtk(TetrMesh_1stOrder* tetr_mesh, int snap_num)
 	maxShearHist->Delete();
 	maxDeviatorHist->Delete();
 
-	string filename = fname;
-	Utils::replaceAll(filename, "%z", Utils::t_to_string(zone_num));
-	Utils::replaceAll(filename, "%n", Utils::t_to_string(snap_num));
-	filename = resultdir+filename;
-	
 	*logger << "Dumping VTK snapshot to file " < filename;
 
 	xgw->SetInput(g);
