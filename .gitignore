@@ -7,7 +7,7 @@ gcm3d-profile
 */nbproject/*
 materials/*
 tools/*.bin
-gcm.log
+*.log
 */snap_volume_*
 snap_volume_*
 build/*
