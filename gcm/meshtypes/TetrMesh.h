@@ -24,6 +24,7 @@ public:
 	virtual Tetrahedron* find_owner_tetr(ElasticNode* node, float dx, float dy, float dz) = 0;
 	virtual Tetrahedron* find_owner_tetr(ElasticNode* node, float dx, float dy, float dz, bool debug) = 0;
 	virtual Tetrahedron* find_border_cross(ElasticNode* node, float dx, float dy, float dz, float* cross) = 0;
+	virtual Tetrahedron* find_border_cross(ElasticNode* node, float dx, float dy, float dz, ElasticNode* cross) = 0;
 	virtual int interpolate(ElasticNode* node, Tetrahedron* tetr) = 0;
 	virtual Tetrahedron* get_tetrahedron(int index) = 0;
 	virtual ElasticNode* get_node(int index) = 0;

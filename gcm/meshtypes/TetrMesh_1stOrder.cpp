@@ -66,6 +66,7 @@ void TetrMesh_1stOrder::add_tetr(Tetrahedron_1st_order* tetr)
 int TetrMesh_1stOrder::pre_process_mesh()
 {
 	*logger < "Preprocessing mesh started...";
+
 //	*logger < "COORDS";
 //	for(int i = 0; i < nodes.size(); i++)
 //		*logger << i << " " << nodes[i].coords[0] << " " << nodes[i].coords[1] << " " < nodes[i].coords[2];
@@ -1434,6 +1435,25 @@ Tetrahedron_1st_order* TetrMesh_1stOrder::find_owner_tetr(ElasticNode* node, flo
 
 };
 
+Tetrahedron_1st_order* TetrMesh_1stOrder::find_border_cross(ElasticNode* node, float dx, float dy, float dz, ElasticNode* cross)
+{
+	// Not implemented yet
+	Tetrahedron_1st_order* tetr = find_border_cross(node, dx, dy, dz, cross->coords);
+
+	int sph_count = 0;
+
+	if( tetr != NULL )
+		for(int j = 0; j < 4; j++)
+			if( nodes[ tetr->vert[j] ].isBorder() )
+				if( nodes[ tetr->vert[j] ].isOwnedBy(SPH) )
+					sph_count++;
+
+	// FIXME - it is possible that we have 4 border nodes, isn't it?
+	if( sph_count == 3 )
+		cross->addOwner( SPH );
+
+	return tetr;
+};
 
 Tetrahedron_1st_order* TetrMesh_1stOrder::find_border_cross(ElasticNode* node, float dx, float dy, float dz, float* coords)
 {
@@ -1490,6 +1510,7 @@ Tetrahedron_1st_order* TetrMesh_1stOrder::find_border_cross(ElasticNode* node, f
 					border_verts[ border_verts_count ] = tetrs[checking[i]].vert[j];
 					border_verts_count++;
 				}
+			// FIXME - it is possible that we have 4 border verts, isn't it?
 			if( border_verts_count == 3 ) {
 
 				*logger < "Border face found. Looking for intersection.";
@@ -2084,7 +2105,7 @@ bool TetrMesh_1stOrder::vector_intersects_triangle(float *p1, float *p2, float *
 		res1 = true;
 
 //		*logger << "P: " << p[0] << " " << p[1] << " " < p[2];
-	if(res1 != result) {
+/*	if(res1 != result) {
 		*logger << "Orient res: " << result << " Area res: " << res1 << " with " < (areas[0] + areas[1] + areas[2] > area * 1.00001);
 		*logger << "Orients: " << qm_engine.same_orientation(p1, p2, p3, p) << " " 
 				<< qm_engine.same_orientation(p1, p3, p2, p) << " "
@@ -2096,7 +2117,7 @@ bool TetrMesh_1stOrder::vector_intersects_triangle(float *p1, float *p2, float *
 		*logger << "P3: " << p3[0] << " " << p3[1] << " " < p3[2];
 		*logger << "P: " << p[0] << " " << p[1] << " " < p[2];
 //		throw GCMException( GCMException::MESH_EXCEPTION, "Different results for vector_intersects_triangle");
-	}
+	}*/
 
 	return res1;
 };

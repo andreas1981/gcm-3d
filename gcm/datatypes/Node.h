@@ -128,13 +128,13 @@ public:
 
 	bool inline isOwnedBy (EngineOwner owner)
 	{
-		assert (0 != node_flags & ENGINE_OWNERSHIP_MASK);//Node should be owned at least by someone
+		assert (0 != (node_flags & ENGINE_OWNERSHIP_MASK));//Node should be owned at least by someone
 		return 0 != (node_flags & ENGINE_OWNERSHIP_MASK & owner);
 	}
 
 	bool inline addOwner (EngineOwner owner)
 	{
-		node_flags |= ENGINE_OWNERSHIP_MASK & owner;
+		node_flags |= (ENGINE_OWNERSHIP_MASK & owner);
 	}
 protected:
 private:

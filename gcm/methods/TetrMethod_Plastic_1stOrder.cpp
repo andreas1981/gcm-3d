@@ -20,6 +20,7 @@ GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::GCM_Tetr_Plastic_Interpolat
 	ext_v_calc = new ExternalVelocityCalculator();
 	ext_val_calc = new ExternalValuesCalculator();
 	adhesion_contact_calc = new AdhesionContactCalculator();
+	sph_connector = new SPHConnector();
 };
 
 GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::~GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis()
@@ -617,26 +618,33 @@ int GCM_Tetr_Plastic_Interpolation_1stOrder_Rotate_Axis::find_nodes_on_previous_
 			}
 			else if ( (cur_node->isInner ()) /*|| (stage != 0)*/ )
 			{
-*logger < "We need new method here!";
-*logger << cur_node->local_num << " " << cur_node->coords[0] << " " << cur_node->coords[1] << " " < cur_node->coords[2];
-for(int j = 0; j < 3; j++)
-	*logger < dksi[i] * random_axis[basis_num].ksi[stage][j];
+				*logger < "We need new method here!";
+				*logger << cur_node->local_num << " " << cur_node->coords[0] << " "
+						 << cur_node->coords[1] << " " < cur_node->coords[2];
+				for(int j = 0; j < 3; j++)
+					*logger < dksi[i] * random_axis[basis_num].ksi[stage][j];
 
-float cross[3];
-tmp_tetr = mesh->find_border_cross(cur_node, dx[0], dx[1], dx[2], cross);
+				ElasticNode cross;
+				tmp_tetr = mesh->find_border_cross(cur_node, dx[0], dx[1], dx[2], &cross);
 
-// !!!! FIXME - time-aware interpolation required
-for(int j = 0; j < 3; j++)
-	previous_nodes[count].coords[j] = cross[j];
-mesh->interpolate(&previous_nodes[count], tmp_tetr);
-inner[i] = true;
+				for(int j = 0; j < 3; j++)
+					previous_nodes[count].coords[j] = cross.coords[j];
 
-//for(int j = 0; j < 3; j++)
-//	*logger < cross[j];
-//for(int j = 0; j < 4; j++)
-//	*logger < tmp_tetr->vert[j];
-
-//throw GCMException( GCMException::METHOD_EXCEPTION, "Issue with characteristics");
+				if( ! cross.isOwnedBy( SPH ) )
+				{
+					// !!!! FIXME - time-aware interpolation required
+					mesh->interpolate(&previous_nodes[count], tmp_tetr);
+				}
+				else
+				{
+					sph_connector->interpolate( previous_nodes[count].coords, previous_nodes[count].values );
+				}
+				inner[i] = true;
+			}
+			else if ( cur_node->isOwnedBy(SPH) )
+			{
+				sph_connector->interpolate( previous_nodes[count].coords, previous_nodes[count].values );
+				inner[i] = true;
 			}
 			else
 			{
@@ -646,9 +654,13 @@ inner[i] = true;
 					if( mesh->find_owner_tetr(cur_node, 
 						-fafa * safe_direction[0], -fafa * safe_direction[1], -fafa * safe_direction[2], debug) != NULL )
 					{
-						*logger << "WTF???????????? safe_direction is correct. Modul is " << fabs(safe_direction_projection_modul) << " Safe value is: " < fafa;
+						*logger << "WTF? safe_direction is correct. Modul is " 
+								<< fabs(safe_direction_projection_modul) << " Safe value is: " < fafa;
 						for(int j = 0; j < 3; j++)
-							*logger << "DATA " << dx[j] << " " << dx_ksi[j] << " " << safe_direction_projection[j] << " " <<  ( cur_node->coords[j] - (mesh->nodes).at(cur_node->local_num).coords[j] ) << " " < alpha;
+							*logger << "DATA " << dx[j] << " " << dx_ksi[j] << " " 
+									<< safe_direction_projection[j] << " " 
+									<< (cur_node->coords[j] - (mesh->nodes).at(cur_node->local_num).coords[j]) 
+									<< " " < alpha;
 					} else
 						*logger < "Normal is really incorrect";
 				}

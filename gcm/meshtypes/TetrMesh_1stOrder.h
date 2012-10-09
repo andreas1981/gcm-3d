@@ -43,6 +43,7 @@ public:
 	Tetrahedron_1st_order* find_owner_tetr(ElasticNode* node, float dx, float dy, float dz, bool debug);
 
 	Tetrahedron_1st_order* find_border_cross(ElasticNode* node, float dx, float dy, float dz, float* cross);
+	Tetrahedron_1st_order* find_border_cross(ElasticNode* node, float dx, float dy, float dz, ElasticNode* cross);
 
 	int interpolate(ElasticNode* node, Tetrahedron* tetr);
 	// checks if vector from p0 in direction v with lenght l intersects triangle p1-p2-p3
