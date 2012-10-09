@@ -782,6 +782,87 @@ int TetrMesh_1stOrder::load_msh_file(char* file_name)
 	return 0;
 };
 
+void TetrMesh_1stOrder::load_vtu_file(string filename)
+{
+	vtkXMLUnstructuredGridReader *xgr = vtkXMLUnstructuredGridReader::New();
+	vtkUnstructuredGrid *g = vtkUnstructuredGrid::New();
+
+	xgr->SetFileName(const_cast<char*>(filename.c_str()));
+	xgr->Update();
+
+	g = xgr->GetOutput();
+	*logger << "Number of points: " < g->GetNumberOfPoints();
+	*logger << "Number of cells: " < g->GetNumberOfCells();
+
+	double v[3];
+	vtkDoubleArray *vel = (vtkDoubleArray*) g->GetPointData()->GetArray("velocity");
+	vel->SetNumberOfComponents(3);
+	vtkDoubleArray *sxx = (vtkDoubleArray*) g->GetPointData()->GetArray("sxx");
+	vtkDoubleArray *sxy = (vtkDoubleArray*) g->GetPointData()->GetArray("sxy");
+	vtkDoubleArray *sxz = (vtkDoubleArray*) g->GetPointData()->GetArray("sxz");
+	vtkDoubleArray *syy = (vtkDoubleArray*) g->GetPointData()->GetArray("syy");
+	vtkDoubleArray *syz = (vtkDoubleArray*) g->GetPointData()->GetArray("syz");
+	vtkDoubleArray *szz = (vtkDoubleArray*) g->GetPointData()->GetArray("szz");
+	vtkDoubleArray *la = (vtkDoubleArray*) g->GetPointData()->GetArray("lambda");
+	vtkDoubleArray *mu = (vtkDoubleArray*) g->GetPointData()->GetArray("mu");
+	vtkDoubleArray *rho = (vtkDoubleArray*) g->GetPointData()->GetArray("rho");
+	vtkIntArray *flags = (vtkIntArray*) g->GetPointData()->GetArray("flags");
+
+	ElasticNode new_node;
+
+	for( int i = 0; i < g->GetNumberOfPoints(); i++ )
+	{
+		double* dp = g->GetPoint(i);
+
+		new_node.local_num = new_node.absolute_num = i;
+		new_node.remote_num = -1;
+		new_node.local_zone_num = zone_num;
+		new_node.remote_zone_num = -1;
+		new_node.coords[0] = new_node.fixed_coords[0] = dp[0];
+		new_node.coords[1] = new_node.fixed_coords[1] = dp[1];
+		new_node.coords[2] = new_node.fixed_coords[2] = dp[2];
+		new_node.la = la->GetValue(i);
+		new_node.mu = mu->GetValue(i);
+		new_node.rho = rho->GetValue(i);
+		vel->GetTupleValue(i, v);
+		new_node.values[0] = v[0];
+		new_node.values[1] = v[1];
+		new_node.values[2] = v[2];
+		new_node.values[3] = sxx->GetValue(i);
+		new_node.values[4] = sxy->GetValue(i);
+		new_node.values[5] = sxz->GetValue(i);
+		new_node.values[6] = syy->GetValue(i);
+		new_node.values[7] = syz->GetValue(i);
+		new_node.values[8] = szz->GetValue(i);
+		new_node.setFlags( flags->GetValue(i) );
+		new_node.elements = NULL;
+		new_node.contact_data = NULL;
+		new_node.local_basis = NULL;
+		new_node.volume_calculator = NULL;
+		new_node.border_condition = NULL;
+		new_node.contact_condition = NULL;
+		for(int z = 0; z < 8; z++)
+			new_node.destruction_criterias[z] = 0;
+		new_node.mesh = this;
+		nodes.push_back(new_node);
+		new_nodes.push_back(new_node);
+	}
+
+	Tetrahedron_1st_order new_tetr;
+	for( int i = 0; i < g->GetNumberOfCells(); i++ )
+	{
+		new_tetr.local_num = i;
+		vtkTetra *vt = (vtkTetra*) g->GetCell(i);
+		new_tetr.vert[0] = vt->GetPointId(0);
+		new_tetr.vert[1] = vt->GetPointId(1);
+		new_tetr.vert[2] = vt->GetPointId(2);
+		new_tetr.vert[3] = vt->GetPointId(3);
+		tetrs.push_back(new_tetr);
+	}
+
+//	throw GCMException( GCMException::MESH_EXCEPTION, "VTU reader not implemented yet");
+};
+
 float TetrMesh_1stOrder::tetr_h(int i)
 {
 		float min_h;
@@ -2239,8 +2320,8 @@ void TetrMesh_1stOrder::update_current_time(float time_step)
 };
 
 void TetrMesh_1stOrder::load_geometry_from_file(string file_name, map<string,string> params){
-	enum TYPES {CAS, ELE, GMV, MSH, UNKNOWN};
-	string types_str[] = {"cas", "ele", "gmv", "msh"};
+	enum TYPES {CAS, ELE, GMV, MSH, VTU, UNKNOWN};
+	string types_str[] = {"cas", "ele", "gmv", "msh", "vtu"};
 	string type = params.count("type") ? params["type"] : "msh";
 	int idx = UNKNOWN;
 	for (int i = 0; i < UNKNOWN; i++)
@@ -2261,6 +2342,11 @@ void TetrMesh_1stOrder::load_geometry_from_file(string file_name, map<string,str
 			case MSH:
 			{
 				load_msh_file(const_cast<char*>(file_name.c_str()));
+				break;
+			}
+			case VTU:
+			{
+				load_vtu_file(file_name);
 				break;
 			}
 			default: throw GCMException(GCMException::UNIMPLEMENTED_EXCEPTION, "Type "+type+" is not supported");                   

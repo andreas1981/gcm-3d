@@ -34,6 +34,7 @@ enum EngineOwner
 class Node
 {
 	friend class VTKSnapshotWriter;
+	friend class TetrMesh_1stOrder;
 public:
 	int local_zone_num;
 	int remote_zone_num;

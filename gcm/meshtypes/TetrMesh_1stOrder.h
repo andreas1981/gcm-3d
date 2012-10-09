@@ -17,6 +17,15 @@ using std::set;
 #include "../system/quick_math.h"
 #include "../system/DataBus.h"
 
+#include <vtkUnstructuredGrid.h>
+#include <vtkXMLUnstructuredGridReader.h>
+#include <vtkUnstructuredGridReader.h>
+#include <vtkTetra.h>
+#include <vtkDoubleArray.h>
+#include <vtkIntArray.h>
+#include <vtkPointData.h>
+#include <vtkstd/string>
+
 //#define DEBUG_MESH_GEOMETRY 1
 
 class TetrMesh_1stOrder : public TetrMesh
@@ -29,6 +38,7 @@ public:
 
 	void load_geometry_from_file(string file_name, map<string,string> params);          
 	void load_cas_file(string file_name, int zone_id);
+	void load_vtu_file(string file_name);
 	int load_msh_file(char* file_name);
 	int load_node_ele_files(char* node_file_name, char* ele_file_name);
 	int load_gmv_file(char* file_name);
