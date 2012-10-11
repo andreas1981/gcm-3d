@@ -806,6 +806,7 @@ void TetrMesh_1stOrder::load_vtu_file(string filename)
 	vtkDoubleArray *la = (vtkDoubleArray*) g->GetPointData()->GetArray("lambda");
 	vtkDoubleArray *mu = (vtkDoubleArray*) g->GetPointData()->GetArray("mu");
 	vtkDoubleArray *rho = (vtkDoubleArray*) g->GetPointData()->GetArray("rho");
+	vtkDoubleArray *yield_limit = (vtkDoubleArray*) g->GetPointData()->GetArray("yieldLimit");
 	vtkIntArray *flags = (vtkIntArray*) g->GetPointData()->GetArray("flags");
 
 	ElasticNode new_node;
@@ -824,6 +825,7 @@ void TetrMesh_1stOrder::load_vtu_file(string filename)
 		new_node.la = la->GetValue(i);
 		new_node.mu = mu->GetValue(i);
 		new_node.rho = rho->GetValue(i);
+		new_node.yield_limit = yield_limit->GetValue(i);
 		vel->GetTupleValue(i, v);
 		new_node.values[0] = v[0];
 		new_node.values[1] = v[1];
