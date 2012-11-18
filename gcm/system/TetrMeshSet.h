@@ -16,7 +16,6 @@ using std::string;
 #include "BorderCondition.h"
 #include "ContactCondition.h"
 #include "../methods/VolumeCalculator.h"
-
 #include "../methods/volume/SimpleVolumeCalculator.h"
 #include "../methods/border/FreeBorderCalculator.h"
 #include "../methods/contact/AdhesionContactCalculator.h"
@@ -36,6 +35,27 @@ public:
 	void log_meshes_stats();
 	float get_current_time();
 	int do_next_step();
+	/**
+	 * Performs next time step with a time step not greater then specified by <code>maxAllowedStep</code>.
+	 * After all calculations are done actual time step taken will be saved into <code>actualTimeStep</code>.
+	 * @param maxAllowedStep max allowed time step to take
+	 * @param actualTimeStep variable to receive actual time step taken
+	 * @return
+	 */
+	int do_next_step (const float maxAllowedStep, float& actualTimeStep);
+	/**
+	 * Does all calculation step actions including validations, time step calculation and stages themselves
+     * @param maxAllowedStep
+     * @param actualTimeStep
+     * @return
+     */
+	int do_next_step_stages (const float maxAllowedStep, float& actualTimeStep);
+	/**
+	 * Does time step after actions: moving nodes, rheology checks, destruction checks etc.
+     * @param timeStep
+     * @return
+     */
+	int do_next_step_after_stages (const float timeStep);
 	int get_number_of_meshes();
 	int get_number_of_local_meshes();
 	int get_number_of_remote_meshes();

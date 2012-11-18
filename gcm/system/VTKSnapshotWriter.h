@@ -30,7 +30,7 @@ using std::stringstream;
 class VTKSnapshotWriter: public SnapshotWriter
 {
 public:
-	VTKSnapshotWriter(char *param);
+	VTKSnapshotWriter(const char *param);
 	~VTKSnapshotWriter();
 	string* get_snapshot_writer_type();
 	int dump_vtk(TetrMesh_1stOrder* tetr_mesh, int snap_num);

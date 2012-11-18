@@ -1,4 +1,8 @@
+#include <limits>
 #include "TetrMeshSet.h"
+#include <map>
+using std::map;
+using std::pair;
 
 TetrMeshSet::TetrMeshSet()
 {
@@ -100,9 +104,24 @@ float TetrMeshSet::get_current_time()
 
 int TetrMeshSet::do_next_step()
 {
+	float tmp;
+	return do_next_step (numeric_limits<float>::infinity (), tmp);
+}
+
+int TetrMeshSet::do_next_step (const float maxAllowedStep, float& actualTimeStep)
+{
+	do_next_step_stages (maxAllowedStep, actualTimeStep);
+	do_next_step_after_stages (actualTimeStep);
+	return 0;
+}
+
+int TetrMeshSet::do_next_step_stages (const float maxAllowedStep, float& actualTimeStep)
+{
+	float maxLocalStep = get_max_possible_tau ();
+	if (maxLocalStep > maxAllowedStep) maxLocalStep = maxAllowedStep;
 	// We need this 0.99 to avoid false 'outer characteristics' exception because of floating point operations rounding errors.
 	// This happen when the point should be exactly on the face of the tetrahedron.
-	float time_step = 0.99 * data_bus->get_max_possible_tau(get_max_possible_tau());
+	float time_step = 0.99 * data_bus->get_max_possible_tau (maxLocalStep);
 	time_step = 0.002;//0.0019;//0.00006;
 
 	// Static detector means you are sure virt nodes don't change between time steps and there is no need to recalculate them
@@ -140,9 +159,11 @@ int TetrMeshSet::do_next_step()
 			throw GCMException( GCMException::MESH_EXCEPTION, "Incorrect number of stages");
 	}
 
+	*logger < "Checking stresses";
 	// check external stresses - if smth has ended and we should switch conditions
 	for(int i = 0; i < local_meshes.size(); i++)
 		local_meshes[i]->check_stresses( get_current_time() );
+	*logger < "Stresses checked";
 
 	// do part steps
 	for(int s = 0; s < number_of_stages; s++)
@@ -167,6 +188,12 @@ int TetrMeshSet::do_next_step()
 		}
 	}
 
+	actualTimeStep = time_step;
+	return 0;
+}
+
+int TetrMeshSet::do_next_step_after_stages (const float time_step)
+{
 	for(int i = 0; i < local_meshes.size(); i++)
 		local_meshes[i]->move_coords(time_step);
 

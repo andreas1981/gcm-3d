@@ -1,6 +1,6 @@
 #include "VTKSnapshotWriter.h"
 
-VTKSnapshotWriter::VTKSnapshotWriter(char *param)
+VTKSnapshotWriter::VTKSnapshotWriter(const char *param)
 {
 	snapshot_writer_type.assign("Generic snapshot writer");
 	resultdir = "./";
@@ -9,6 +9,8 @@ VTKSnapshotWriter::VTKSnapshotWriter(char *param)
 	else
 		fname = param;
 };
+
+VTKSnapshotWriter::~VTKSnapshotWriter () {}
 
 string* VTKSnapshotWriter::get_snapshot_writer_type()
 {

@@ -49,6 +49,7 @@ public:
 	Node ()
 	{
 		node_flags = 0;
+		addOwner (GCM);//By default all nodes owned by GCM
 	}
 
 	bool inline isInContact ()

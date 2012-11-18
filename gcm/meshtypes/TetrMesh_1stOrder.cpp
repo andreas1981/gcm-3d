@@ -668,7 +668,10 @@ int TetrMesh_1stOrder::load_msh_file(char* file_name)
 	ifstream infile;
 	infile.open(file_name, ifstream::in);
 	if(!infile.is_open())
+	{
+		*logger << "ERROR: Can not open msh file: " < file_name;
 		throw GCMException( GCMException::MESH_EXCEPTION, "Can not open msh file");
+	}
 
 	*logger < "INFO: TetrMesh_1stOrder::load_msh_file - Reading file...";
 
@@ -687,6 +690,7 @@ int TetrMesh_1stOrder::load_msh_file(char* file_name)
 		throw GCMException( GCMException::MESH_EXCEPTION, "Wrong file format");
 
 	infile >> number_of_nodes;
+	*logger << "INFO: TetrMesh_1stOrder::load_msh_file: the file contains " << number_of_nodes < " nodes";
 
 	for(int i = 0; i < number_of_nodes; i++)
 	{
@@ -741,6 +745,7 @@ int TetrMesh_1stOrder::load_msh_file(char* file_name)
 		nodes.push_back(new_node);
 		new_nodes.push_back(new_node);
 	}
+	*logger < "INFO: TetrMesh_1stOrder::load_msh_file: Finished reading nodes";
 
 	infile >> str;
 	if(strcmp(str.c_str(),"$EndNodes") != 0)
@@ -751,6 +756,7 @@ int TetrMesh_1stOrder::load_msh_file(char* file_name)
 		throw GCMException( GCMException::MESH_EXCEPTION, "Wrong file format");
 
 	infile >> number_of_elements;
+	*logger << "INFO: TetrMesh_1stOrder::load_msh_file: the file contains " << number_of_elements < " elements";
 	for(int i = 0; i < number_of_elements; i++)
 	{
 		infile >> tmp_int >> tmp_int;
@@ -770,12 +776,13 @@ int TetrMesh_1stOrder::load_msh_file(char* file_name)
 			tetrs.push_back(new_tetr);
 		}
 	}
+	*logger < "INFO: TetrMesh_1stOrder::load_msh_file: Finished reading elements";
 
 	infile >> str;
 	if(strcmp(str.c_str(),"$EndElements") != 0)
 		throw GCMException( GCMException::MESH_EXCEPTION, "Wrong file format");
 
-	*logger < "INFO: TetrMesh_1stOrder::load_msh_file - File read.";
+	*logger < "INFO: TetrMesh_1stOrder::load_msh_file - File successfylly read.";
 
 	infile.close();
 
@@ -1933,8 +1940,12 @@ void TetrMesh_1stOrder::check_stresses(float tau)
 	{
 		if(nodes[i].isLocal ())
 		{
+			if (stresser != NULL)
+			{
 // FIXME
 stresser->set_current_stress(&nodes[i], &nodes[i], tau);
+			}
+
 			if( nodes[i].volume_calculator == NULL )
 				nodes[i].volume_calculator = mesh_set->getDefaultVolumeCalculator();
 			if( (nodes[i].border_condition == NULL) || ( ! nodes[i].border_condition->form->isActive(tau) ) )
@@ -2332,7 +2343,8 @@ void TetrMesh_1stOrder::load_geometry_from_file(string file_name, map<string,str
 			idx = i;
 			break;
 		}
-		switch (idx) {
+
+	switch (idx) {
 			// TODO add proper loaders calls
 			case CAS:
 			{

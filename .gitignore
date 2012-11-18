@@ -4,6 +4,7 @@ Makefile
 cmake_install.cmake
 gcm3d
 gcm3d-profile
+nbproject
 */nbproject/*
 materials/*
 tools/*.bin
@@ -15,3 +16,13 @@ build/*
 .cproject
 .dep.inc
 */Makefile-*.mk
+*/.waf-*
+*/.lock-wafbuild
+*.cpp.*.o
+*/waftools/*.pyc
+*/.build
+*.pyc
+*.a
+.lock-wafbuild
+.waf-*
+
