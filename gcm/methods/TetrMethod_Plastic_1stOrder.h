@@ -14,6 +14,7 @@ using std::set;
 #include "../system/quick_math.h"
 #include "../meshtypes/TetrMesh.h"
 #include "../system/TetrMeshSet.h"
+#include "../system/SPHConnector.h"
 #include "./volume/SimpleVolumeCalculator.h"
 #include "./border/FreeBorderCalculator.h"
 #include "./border/FixedBorderCalculator.h"
@@ -44,6 +45,7 @@ protected:
 	ExternalVelocityCalculator* ext_v_calc;
 	ExternalValuesCalculator* ext_val_calc;
 	AdhesionContactCalculator* adhesion_contact_calc;
+	SPHConnector* sph_connector;
 
 	int prepare_node(ElasticNode* cur_node, ElasticMatrix3D* matrixes[], float time_step, int stage, TetrMesh* mesh, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num);
 	int prepare_node(ElasticNode* cur_node, ElasticMatrix3D* matrixes[], float time_step, int stage, TetrMesh* mesh, float dksi[], bool inner[], ElasticNode previous_nodes[], float outer_normal[], int ppoint_num[], int basis_num, bool debug);

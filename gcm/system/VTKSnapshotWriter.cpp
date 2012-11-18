@@ -70,6 +70,7 @@ int VTKSnapshotWriter::dump_vtk (string filename, TetrMesh_1stOrder* tetr_mesh, 
 	vtkDoubleArray *la = vtkDoubleArray::New();
 	vtkDoubleArray *mu = vtkDoubleArray::New();
 	vtkDoubleArray *rho = vtkDoubleArray::New();
+	vtkDoubleArray *yield_limit = vtkDoubleArray::New();
 
 	vtkDoubleArray *maxCompression = vtkDoubleArray::New();
 	vtkDoubleArray *maxTension = vtkDoubleArray::New();
@@ -97,6 +98,7 @@ int VTKSnapshotWriter::dump_vtk (string filename, TetrMesh_1stOrder* tetr_mesh, 
 		la->InsertNextValue( node.la );
 		mu->InsertNextValue( node.mu );
 		rho->InsertNextValue( node.rho );
+		yield_limit->InsertNextValue( node.yield_limit );
 		contact->InsertNextValue( node.isInContact () ? 1: 0 );
 		nodeFlags->InsertNextValue (node.getFlags ());
 
@@ -130,6 +132,7 @@ int VTKSnapshotWriter::dump_vtk (string filename, TetrMesh_1stOrder* tetr_mesh, 
 	la->SetName("lambda");
 	mu->SetName("mu");
 	rho->SetName("rho");
+	yield_limit->SetName("yieldLimit");
 	contact->SetName("contact");
 	nodeFlags->SetName ("flags");
 
@@ -152,6 +155,7 @@ int VTKSnapshotWriter::dump_vtk (string filename, TetrMesh_1stOrder* tetr_mesh, 
 	g->GetPointData()->AddArray(la);
 	g->GetPointData()->AddArray(mu);
 	g->GetPointData()->AddArray(rho);
+	g->GetPointData()->AddArray(yield_limit);
 	g->GetPointData()->AddArray(contact);
 	g->GetPointData ()->AddArray (nodeFlags);
 
@@ -174,6 +178,7 @@ int VTKSnapshotWriter::dump_vtk (string filename, TetrMesh_1stOrder* tetr_mesh, 
 	la->Delete();
 	mu->Delete();
 	rho->Delete();
+	yield_limit->Delete();
 	contact->Delete();
 	nodeFlags->Delete ();
 

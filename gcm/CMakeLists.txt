@@ -68,6 +68,7 @@ set ( SOURCES
 	./system/forms/StepPulseForm.cpp
 	./system/BorderCondition.cpp
 	./system/ContactCondition.cpp
+	./system/SPHConnector.cpp
 	./main.cpp )
 
 add_executable (${PROJECT} ${SOURCES})
